@@ -1,0 +1,156 @@
+# Sales Order Tracker Connector
+# Track open sales orders and backlog
+
+id: sales-order-tracker
+name: Sales Order Tracker
+description: >
+  Track open sales orders, backlog, and customer orders.
+  Monitor what needs to ship and identify late orders.
+version: "1.0.0"
+category: Sales
+icon: shopping-cart
+tags:
+  - orders
+  - customers
+  - shipping
+  - sales
+  - backlog
+status: published
+
+idos:
+  - name: SLCoItems
+    alias: order_lines
+    description: Sales order line items
+    properties:
+      - name: CoNum
+        alias: order_number
+        type: string
+        filterable: true
+        primary_key: true
+      - name: CoLine
+        alias: line_number
+        type: number
+      - name: Item
+        alias: item_number
+        type: string
+        filterable: true
+      - name: Description
+        alias: description
+        type: string
+      - name: QtyOrdered
+        alias: quantity_ordered
+        type: number
+      - name: QtyShipped
+        alias: quantity_shipped
+        type: number
+      - name: DueDate
+        alias: due_date
+        type: date
+        filterable: true
+        sortable: true
+      - name: Stat
+        alias: status
+        type: string
+        filterable: true
+    default_filter: "Stat = 'O'"
+
+  - name: SLCos
+    alias: orders
+    description: Sales order headers
+    properties:
+      - name: CoNum
+        alias: order_number
+        type: string
+        primary_key: true
+      - name: CustNum
+        alias: customer_number
+        type: string
+        filterable: true
+      - name: CustName
+        alias: customer_name
+        type: string
+      - name: OrderDate
+        alias: order_date
+        type: date
+        sortable: true
+      - name: Stat
+        alias: status
+        type: string
+
+joins:
+  - type: INNER
+    left_ido: order_lines
+    right_ido: orders
+    left_key: CoNum
+    right_key: CoNum
+
+join_sql: |
+  SELECT 
+    ol.CoNum as order_number,
+    ol.CoLine as line_number,
+    ol.Item as item_number,
+    ol.Description as description,
+    ol.QtyOrdered as quantity_ordered,
+    ol.QtyShipped as quantity_shipped,
+    ol.QtyOrdered - ol.QtyShipped as quantity_remaining,
+    ol.DueDate as due_date,
+    ol.Stat as line_status,
+    o.CustNum as customer_number,
+    o.CustName as customer_name,
+    o.OrderDate as order_date,
+    o.Stat as order_status
+  FROM order_lines ol
+  INNER JOIN orders o ON ol.CoNum = o.CoNum
+  ORDER BY ol.DueDate ASC
+
+output_fields:
+  - name: order_number
+    type: string
+  - name: line_number
+    type: number
+  - name: item_number
+    type: string
+  - name: description
+    type: string
+  - name: quantity_ordered
+    type: number
+  - name: quantity_shipped
+    type: number
+  - name: quantity_remaining
+    type: number
+  - name: due_date
+    type: date
+  - name: line_status
+    type: string
+  - name: customer_number
+    type: string
+  - name: customer_name
+    type: string
+  - name: order_date
+    type: date
+
+tools:
+  - name: get_open_orders
+    description: >
+      Get open sales orders with line details.
+      Shows what needs to ship and identifies late orders.
+    parameters:
+      - name: customer_number
+        type: string
+        description: Filter by customer number
+        required: false
+      - name: item
+        type: string
+        description: Filter by item number
+        required: false
+      - name: late_only
+        type: boolean
+        description: Only show orders past their due date
+        required: false
+      - name: limit
+        type: number
+        description: Maximum records to return
+        default: "100"
+
+estimated_volume: medium
+freshness_requirement: real-time

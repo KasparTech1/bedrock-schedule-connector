@@ -1,0 +1,127 @@
+# Customer Search Connector
+# Search and lookup customer information
+
+id: customer-search
+name: Customer Search
+description: >
+  Search and lookup customer information including contact details,
+  addresses, and account status.
+version: "1.0.0"
+category: Customers
+icon: users
+tags:
+  - customers
+  - contacts
+  - search
+  - accounts
+status: published
+
+idos:
+  - name: SLCustomers
+    alias: customers
+    description: Customer master data
+    properties:
+      - name: CustNum
+        alias: customer_number
+        type: string
+        filterable: true
+        primary_key: true
+      - name: Name
+        alias: name
+        type: string
+        filterable: true
+      - name: Addr1
+        alias: address_line_1
+        type: string
+      - name: Addr2
+        alias: address_line_2
+        type: string
+      - name: City
+        alias: city
+        type: string
+        filterable: true
+      - name: State
+        alias: state
+        type: string
+        filterable: true
+      - name: Zip
+        alias: zip_code
+        type: string
+      - name: Country
+        alias: country
+        type: string
+      - name: Phone
+        alias: phone
+        type: string
+      - name: Contact
+        alias: contact_name
+        type: string
+      - name: Email
+        alias: email
+        type: string
+      - name: CustType
+        alias: customer_type
+        type: string
+        filterable: true
+      - name: Stat
+        alias: status
+        type: string
+        filterable: true
+
+output_fields:
+  - name: customer_number
+    type: string
+  - name: name
+    type: string
+  - name: address_line_1
+    type: string
+  - name: address_line_2
+    type: string
+  - name: city
+    type: string
+  - name: state
+    type: string
+  - name: zip_code
+    type: string
+  - name: country
+    type: string
+  - name: phone
+    type: string
+  - name: contact_name
+    type: string
+  - name: email
+    type: string
+  - name: customer_type
+    type: string
+  - name: status
+    type: string
+
+tools:
+  - name: search_customers
+    description: >
+      Search for customers by name, number, city, or state.
+      Returns customer details including contact information.
+    parameters:
+      - name: search_term
+        type: string
+        description: Search term to match against name or number
+        required: false
+      - name: customer_number
+        type: string
+        description: Exact customer number lookup
+        required: false
+      - name: city
+        type: string
+        description: Filter by city
+        required: false
+      - name: state
+        type: string
+        description: Filter by state
+        required: false
+      - name: limit
+        type: number
+        description: Maximum records to return
+        default: "50"
+
+estimated_volume: low
+freshness_requirement: near-real-time

@@ -21,6 +21,7 @@ from kai_erp.connectors import (
     InventoryStatus,
     SalesOrderTracker,
 )
+from kai_erp.api.registry_routes import router as registry_router
 
 logger = structlog.get_logger(__name__)
 
@@ -71,6 +72,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(registry_router)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

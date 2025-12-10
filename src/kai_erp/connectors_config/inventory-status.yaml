@@ -1,0 +1,147 @@
+# Inventory Status Connector
+# Check inventory levels and availability
+
+id: inventory-status
+name: Inventory Status
+description: >
+  Check current inventory levels, stock availability, and warehouse locations.
+  Identify low-stock items and view inventory by warehouse.
+version: "1.0.0"
+category: Inventory
+icon: package
+tags:
+  - inventory
+  - stock
+  - warehouse
+  - availability
+status: published
+
+idos:
+  - name: SLItemLocs
+    alias: item_locations
+    description: Item inventory by location
+    properties:
+      - name: Item
+        alias: item_number
+        type: string
+        filterable: true
+        primary_key: true
+      - name: Whse
+        alias: warehouse
+        type: string
+        filterable: true
+        primary_key: true
+      - name: Loc
+        alias: location
+        type: string
+        filterable: true
+      - name: QtyOnHand
+        alias: quantity_on_hand
+        type: number
+        sortable: true
+      - name: QtyRsvd
+        alias: quantity_reserved
+        type: number
+      - name: SafetyStockQty
+        alias: safety_stock
+        type: number
+
+  - name: SLItems
+    alias: items
+    description: Item master data
+    properties:
+      - name: Item
+        alias: item_number
+        type: string
+        primary_key: true
+      - name: Description
+        alias: description
+        type: string
+      - name: UM
+        alias: unit_of_measure
+        type: string
+      - name: ProductCode
+        alias: product_code
+        type: string
+        filterable: true
+      - name: Stat
+        alias: status
+        type: string
+
+joins:
+  - type: INNER
+    left_ido: item_locations
+    right_ido: items
+    left_key: Item
+    right_key: Item
+
+join_sql: |
+  SELECT 
+    il.Item as item_number,
+    i.Description as description,
+    il.Whse as warehouse,
+    il.Loc as location,
+    il.QtyOnHand as quantity_on_hand,
+    il.QtyRsvd as quantity_reserved,
+    il.QtyOnHand - il.QtyRsvd as quantity_available,
+    il.SafetyStockQty as safety_stock,
+    CASE WHEN il.QtyOnHand - il.QtyRsvd <= il.SafetyStockQty THEN true ELSE false END as low_stock,
+    i.UM as unit_of_measure,
+    i.ProductCode as product_code,
+    i.Stat as item_status
+  FROM item_locations il
+  INNER JOIN items i ON il.Item = i.Item
+
+output_fields:
+  - name: item_number
+    type: string
+  - name: description
+    type: string
+  - name: warehouse
+    type: string
+  - name: location
+    type: string
+  - name: quantity_on_hand
+    type: number
+  - name: quantity_reserved
+    type: number
+  - name: quantity_available
+    type: number
+  - name: safety_stock
+    type: number
+  - name: low_stock
+    type: boolean
+  - name: unit_of_measure
+    type: string
+  - name: product_code
+    type: string
+
+tools:
+  - name: get_inventory_status
+    description: >
+      Get current inventory levels by item and warehouse.
+      Shows on-hand, reserved, and available quantities.
+    parameters:
+      - name: item
+        type: string
+        description: Filter by item number
+        required: false
+      - name: warehouse
+        type: string
+        description: Filter by warehouse code
+        required: false
+      - name: low_stock_only
+        type: boolean
+        description: Only show items at or below safety stock
+        required: false
+      - name: product_code
+        type: string
+        description: Filter by product code
+        required: false
+      - name: limit
+        type: number
+        description: Maximum records to return
+        default: "100"
+
+estimated_volume: high
+freshness_requirement: real-time

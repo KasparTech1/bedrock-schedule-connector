@@ -12,7 +12,7 @@ interface ConnectorCardProps {
   version: string;
   tags: string[];
   icon?: string;
-  status?: "draft" | "published";
+  status?: string;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {

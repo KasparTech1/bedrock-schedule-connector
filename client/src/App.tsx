@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Layout } from "@/components/Layout";
 import { Library } from "@/pages/Library";
 import { Connectors } from "@/pages/admin/Connectors";
+import { ConnectorDetail } from "@/pages/ConnectorDetail";
 
 const queryClient = new QueryClient();
 
@@ -32,16 +33,7 @@ function App() {
             </div>
           </Route>
           <Route path="/connector/:id">
-            {(params) => (
-              <div className="text-center py-12">
-                <h1 className="text-2xl font-semibold">
-                  Connector: {params.id}
-                </h1>
-                <p className="text-muted-foreground mt-2">
-                  Detail page coming soon...
-                </p>
-              </div>
-            )}
+            {(params) => <ConnectorDetail id={params.id} />}
           </Route>
           <Route>
             <div className="text-center py-12">

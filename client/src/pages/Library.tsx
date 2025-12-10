@@ -1,60 +1,29 @@
 import { useState } from "react";
-import { Search } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Search, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ConnectorCard } from "@/components/ConnectorCard";
-
-// Mock data - will be replaced with API call
-const mockConnectors = [
-  {
-    id: "bedrock-ops-scheduler",
-    name: "Bedrock Ops Scheduler",
-    description:
-      "Production schedule visibility for Bedrock Truck Beds manufacturing operations. Track jobs, work centers, and completion status in real-time.",
-    category: "Manufacturing",
-    version: "1.0.0",
-    tags: ["production", "jobs", "schedule", "work-centers"],
-    icon: "factory",
-  },
-  {
-    id: "sales-order-tracker",
-    name: "Sales Order Tracker",
-    description:
-      "Track open sales orders, backlog, and customer orders. Monitor what needs to ship and identify late orders.",
-    category: "Sales",
-    version: "1.0.0",
-    tags: ["orders", "customers", "shipping"],
-    icon: "shopping-cart",
-  },
-  {
-    id: "customer-search",
-    name: "Customer Search",
-    description:
-      "Search and lookup customer information including contact details, addresses, and account status.",
-    category: "Customers",
-    version: "1.0.0",
-    tags: ["customers", "contacts", "search"],
-    icon: "users",
-  },
-  {
-    id: "inventory-status",
-    name: "Inventory Status",
-    description:
-      "Check current inventory levels, stock availability, and warehouse locations. Identify low-stock items.",
-    category: "Inventory",
-    version: "1.0.0",
-    tags: ["inventory", "stock", "warehouse"],
-    icon: "package",
-  },
-];
-
-const categories = ["All", "Manufacturing", "Sales", "Customers", "Inventory"];
+import { api } from "@/lib/api";
 
 export function Library() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
 
-  const filteredConnectors = mockConnectors.filter((connector) => {
+  // Fetch published connectors from API
+  const { data: connectors = [], isLoading, error } = useQuery({
+    queryKey: ["connectors", "published"],
+    queryFn: () => api.connectors.list(true),
+  });
+
+  // Get unique categories from connectors
+  const categories = [
+    "All",
+    ...Array.from(new Set(connectors.map((c) => c.category))),
+  ];
+
+  // Filter connectors
+  const filteredConnectors = connectors.filter((connector) => {
     const matchesSearch =
       connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       connector.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,6 +34,19 @@ export function Library() {
       selectedCategory === "All" || connector.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  if (error) {
+    return (
+      <div className="text-center py-12">
+        <p className="text-destructive">
+          Failed to load connectors. Is the API running?
+        </p>
+        <p className="text-muted-foreground text-sm mt-2">
+          {error instanceof Error ? error.message : "Unknown error"}
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -101,24 +83,45 @@ export function Library() {
         </div>
       </div>
 
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <span className="ml-2 text-muted-foreground">Loading connectors...</span>
+        </div>
+      )}
+
       {/* Results Count */}
-      <div className="text-sm text-muted-foreground">
-        Showing {filteredConnectors.length} connector
-        {filteredConnectors.length !== 1 ? "s" : ""}
-      </div>
+      {!isLoading && (
+        <div className="text-sm text-muted-foreground">
+          Showing {filteredConnectors.length} connector
+          {filteredConnectors.length !== 1 ? "s" : ""}
+        </div>
+      )}
 
       {/* Connector Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {filteredConnectors.map((connector) => (
-          <ConnectorCard key={connector.id} {...connector} />
-        ))}
-      </div>
+      {!isLoading && (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {filteredConnectors.map((connector) => (
+            <ConnectorCard key={connector.id} {...connector} />
+          ))}
+        </div>
+      )}
 
       {/* Empty State */}
-      {filteredConnectors.length === 0 && (
+      {!isLoading && filteredConnectors.length === 0 && connectors.length > 0 && (
         <div className="text-center py-12">
           <p className="text-muted-foreground">
             No connectors found matching your search.
+          </p>
+        </div>
+      )}
+
+      {/* No Connectors at All */}
+      {!isLoading && connectors.length === 0 && (
+        <div className="text-center py-12">
+          <p className="text-muted-foreground">
+            No connectors available yet. Create one in the Admin section.
           </p>
         </div>
       )}
