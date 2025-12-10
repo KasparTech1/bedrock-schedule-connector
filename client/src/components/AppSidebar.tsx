@@ -36,7 +36,11 @@ const navItems: NavItem[] = [
   { title: "Settings", href: "/admin/settings", icon: Settings, section: "Admin" },
 ];
 
-export function AppSidebar() {
+interface AppSidebarProps {
+  onNavigate?: () => void;
+}
+
+export function AppSidebar({ onNavigate }: AppSidebarProps) {
   const [location] = useLocation();
   const [collapsed, setCollapsed] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
@@ -93,6 +97,7 @@ export function AppSidebar() {
                 item={item}
                 isActive={location === item.href}
                 collapsed={collapsed}
+                onNavigate={onNavigate}
               />
             ))}
           </div>
@@ -112,6 +117,7 @@ export function AppSidebar() {
                 item={item}
                 isActive={location === item.href || location.startsWith(item.href + "/")}
                 collapsed={collapsed}
+                onNavigate={onNavigate}
               />
             ))}
           </div>
@@ -186,10 +192,12 @@ function NavLink({
   item,
   isActive,
   collapsed,
+  onNavigate,
 }: {
   item: NavItem;
   isActive: boolean;
   collapsed: boolean;
+  onNavigate?: () => void;
 }) {
   const Icon = item.icon;
 
@@ -197,7 +205,7 @@ function NavLink({
     return (
       <Tooltip>
         <TooltipTrigger asChild>
-          <Link href={item.href}>
+          <Link href={item.href} onClick={onNavigate}>
             <Button
               variant="ghost"
               size="icon"
@@ -218,7 +226,7 @@ function NavLink({
   }
 
   return (
-    <Link href={item.href}>
+    <Link href={item.href} onClick={onNavigate}>
       <Button
         variant="ghost"
         className={cn(

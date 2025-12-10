@@ -1,10 +1,15 @@
 import { Link } from "wouter";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Pencil, Copy, Trash2, Loader2, Eye, EyeOff } from "lucide-react";
+import { Plus, Pencil, Copy, Trash2, Loader2, Eye, EyeOff, Circle, Construction } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api, ConnectorSummary } from "@/lib/api";
+
+// Helper to determine if connector is "live"
+const isLiveConnector = (connector: ConnectorSummary) => {
+  return connector.category === "Demo" || connector.tags?.includes("live");
+};
 
 export function Connectors() {
   const queryClient = useQueryClient();
@@ -130,80 +135,96 @@ export function Connectors() {
                     </tr>
                   </thead>
                   <tbody className="[&_tr:last-child]:border-0">
-                    {connectors.map((connector) => (
-                      <tr
-                        key={connector.id}
-                        className="border-b transition-colors hover:bg-muted/50"
-                      >
-                        <td className="p-4 align-middle font-medium">
-                          <Link
-                            href={`/connector/${connector.id}`}
-                            className="hover:underline text-primary"
+                    {/* Sort: LIVE/Demo connectors first */}
+                    {[...connectors]
+                      .sort((a, b) => {
+                        const aIsLive = isLiveConnector(a);
+                        const bIsLive = isLiveConnector(b);
+                        if (aIsLive && !bIsLive) return -1;
+                        if (!aIsLive && bIsLive) return 1;
+                        return a.name.localeCompare(b.name);
+                      })
+                      .map((connector) => {
+                        const isLive = isLiveConnector(connector);
+                        return (
+                          <tr
+                            key={connector.id}
+                            className={`border-b transition-colors hover:bg-muted/50 ${
+                              isLive ? "bg-green-50/50" : ""
+                            }`}
                           >
-                            {connector.name}
-                          </Link>
-                        </td>
-                        <td className="p-4 align-middle">
-                          <Badge variant="secondary">{connector.category}</Badge>
-                        </td>
-                        <td className="p-4 align-middle text-muted-foreground">
-                          v{connector.version}
-                        </td>
-                        <td className="p-4 align-middle text-muted-foreground">
-                          {connector.tools_count}
-                        </td>
-                        <td className="p-4 align-middle">
-                          <Badge
-                            variant={
-                              connector.status === "published"
-                                ? "success"
-                                : "outline"
-                            }
-                          >
-                            {connector.status}
-                          </Badge>
-                        </td>
-                        <td className="p-4 align-middle text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title={
-                                connector.status === "published"
-                                  ? "Unpublish"
-                                  : "Publish"
-                              }
-                              onClick={() => handleTogglePublish(connector)}
-                            >
-                              {connector.status === "published" ? (
-                                <EyeOff className="w-4 h-4" />
+                            <td className="p-4 align-middle font-medium">
+                              <Link
+                                href={`/connector/${connector.id}`}
+                                className="hover:underline text-primary"
+                              >
+                                {connector.name}
+                              </Link>
+                            </td>
+                            <td className="p-4 align-middle">
+                              <Badge variant="secondary">{connector.category}</Badge>
+                            </td>
+                            <td className="p-4 align-middle text-muted-foreground">
+                              v{connector.version}
+                            </td>
+                            <td className="p-4 align-middle text-muted-foreground">
+                              {connector.tools_count}
+                            </td>
+                            <td className="p-4 align-middle">
+                              {isLive ? (
+                                <Badge className="bg-green-500 hover:bg-green-600">
+                                  <Circle className="w-2 h-2 mr-1 fill-current animate-pulse" />
+                                  LIVE
+                                </Badge>
                               ) : (
-                                <Eye className="w-4 h-4" />
+                                <Badge className="bg-amber-500 hover:bg-amber-600">
+                                  <Construction className="w-3 h-3 mr-1" />
+                                  In Progress
+                                </Badge>
                               )}
-                            </Button>
-                            <Link href={`/admin/connectors/${connector.id}/edit`}>
-                              <Button variant="ghost" size="icon" title="Edit">
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                            </Link>
-                            <Button variant="ghost" size="icon" title="Duplicate">
-                              <Copy className="w-4 h-4" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              title="Delete"
-                              className="text-destructive hover:text-destructive"
-                              onClick={() =>
-                                handleDelete(connector.id, connector.name)
-                              }
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
+                            </td>
+                            <td className="p-4 align-middle text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title={
+                                    connector.status === "published"
+                                      ? "Unpublish"
+                                      : "Publish"
+                                  }
+                                  onClick={() => handleTogglePublish(connector)}
+                                >
+                                  {connector.status === "published" ? (
+                                    <EyeOff className="w-4 h-4" />
+                                  ) : (
+                                    <Eye className="w-4 h-4" />
+                                  )}
+                                </Button>
+                                <Link href={`/admin/connectors/${connector.id}/edit`}>
+                                  <Button variant="ghost" size="icon" title="Edit">
+                                    <Pencil className="w-4 h-4" />
+                                  </Button>
+                                </Link>
+                                <Button variant="ghost" size="icon" title="Duplicate">
+                                  <Copy className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  title="Delete"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() =>
+                                    handleDelete(connector.id, connector.name)
+                                  }
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
