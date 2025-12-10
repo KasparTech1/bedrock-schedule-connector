@@ -6,6 +6,7 @@ import { Connectors } from "@/pages/admin/Connectors";
 import { ConnectorDetail } from "@/pages/ConnectorDetail";
 import { ConnectorBuilder } from "@/pages/admin/ConnectorBuilder";
 import { Connections } from "@/pages/admin/Connections";
+import { DemoTryIt } from "@/pages/DemoTryIt";
 
 const queryClient = new QueryClient();
 
@@ -32,6 +33,7 @@ function App() {
           <Route path="/connector/:id">
             {(params) => <ConnectorDetail id={params.id} />}
           </Route>
+          <Route path="/connector/demo-syteline-items/try" component={DemoTryIt} />
           <Route>
             <div className="text-center py-12">
               <h1 className="text-2xl font-semibold">404 - Not Found</h1>
