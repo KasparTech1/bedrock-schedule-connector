@@ -23,17 +23,26 @@ export function Library() {
   ];
 
   // Filter connectors
-  const filteredConnectors = connectors.filter((connector) => {
-    const matchesSearch =
-      connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      connector.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      connector.tags.some((tag) =>
-        tag.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-    const matchesCategory =
-      selectedCategory === "All" || connector.category === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredConnectors = connectors
+    .filter((connector) => {
+      const matchesSearch =
+        connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        connector.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        connector.tags.some((tag) =>
+          tag.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+      const matchesCategory =
+        selectedCategory === "All" || connector.category === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    // Sort: LIVE/Demo connectors first, then alphabetically
+    .sort((a, b) => {
+      const aIsLive = a.category === "Demo" || a.tags?.includes("live");
+      const bIsLive = b.category === "Demo" || b.tags?.includes("live");
+      if (aIsLive && !bIsLive) return -1;
+      if (!aIsLive && bIsLive) return 1;
+      return a.name.localeCompare(b.name);
+    });
 
   if (error) {
     return (

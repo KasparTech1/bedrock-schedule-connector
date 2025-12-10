@@ -1,5 +1,5 @@
 import { Link } from "wouter";
-import { Factory, ShoppingCart, Users, Package, ExternalLink } from "lucide-react";
+import { Factory, ShoppingCart, Users, Package, ExternalLink, Zap, Circle, Construction } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -13,6 +13,7 @@ interface ConnectorCardProps {
   tags: string[];
   icon?: string;
   status?: string;
+  isLive?: boolean;
 }
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -20,6 +21,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   "shopping-cart": ShoppingCart,
   users: Users,
   package: Package,
+  zap: Zap,
 };
 
 export function ConnectorCard({
@@ -31,15 +33,19 @@ export function ConnectorCard({
   tags,
   icon = "factory",
   status = "published",
+  isLive = false,
 }: ConnectorCardProps) {
   const Icon = iconMap[icon] || Factory;
 
+  // Determine if this is a live connector (DEMO or explicitly marked)
+  const isLiveConnector = isLive || category === "Demo" || tags.includes("live");
+
   return (
-    <Card className="hover-elevate cursor-pointer active-elevate-2 transition-all">
+    <Card className={`hover-elevate cursor-pointer active-elevate-2 transition-all ${isLiveConnector ? "border-green-500/50 ring-1 ring-green-500/20" : ""}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10 text-primary">
+            <div className={`p-2 rounded-lg ${isLiveConnector ? "bg-green-500/10 text-green-600" : "bg-primary/10 text-primary"}`}>
               <Icon className="w-6 h-6" />
             </div>
             <div>
@@ -52,9 +58,20 @@ export function ConnectorCard({
               </div>
             </div>
           </div>
-          {status === "draft" && (
+          {/* Status Badge */}
+          {isLiveConnector ? (
+            <Badge className="bg-green-500 hover:bg-green-600 text-xs">
+              <Circle className="w-2 h-2 mr-1 fill-current animate-pulse" />
+              LIVE
+            </Badge>
+          ) : status === "draft" ? (
             <Badge variant="outline" className="text-xs">
               Draft
+            </Badge>
+          ) : (
+            <Badge className="bg-amber-500 hover:bg-amber-600 text-xs">
+              <Construction className="w-3 h-3 mr-1" />
+              In Progress
             </Badge>
           )}
         </div>
