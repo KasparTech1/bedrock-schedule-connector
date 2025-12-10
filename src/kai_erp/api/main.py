@@ -22,6 +22,7 @@ from kai_erp.connectors import (
     SalesOrderTracker,
 )
 from kai_erp.api.registry_routes import router as registry_router
+from kai_erp.api.testdb_routes import router as testdb_router
 
 logger = structlog.get_logger(__name__)
 
@@ -75,6 +76,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(registry_router)
+app.include_router(testdb_router)
 
 
 # ─────────────────────────────────────────────────────────────────────────────

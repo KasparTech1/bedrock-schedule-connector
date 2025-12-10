@@ -75,6 +75,19 @@ export interface ConnectorConfig {
   freshness_requirement: string;
 }
 
+export interface TestDbStatus {
+  connected: boolean;
+  db_path: string;
+  tables: Record<string, number>;
+  total_records: number;
+}
+
+export interface TestDbQueryResult {
+  ido: string;
+  records: Record<string, unknown>[];
+  count: number;
+}
+
 async function handleResponse<T>(response: Response): Promise<T> {
   if (!response.ok) {
     const error = await response.json().catch(() => ({ detail: response.statusText }));
@@ -143,6 +156,58 @@ export const api = {
         method: "POST",
       });
       return handleResponse<ConnectorConfig>(response);
+    },
+  },
+
+  testdb: {
+    status: async (): Promise<TestDbStatus> => {
+      const response = await fetch(`${API_BASE}/testdb/status`);
+      return handleResponse<TestDbStatus>(response);
+    },
+
+    seed: async (numJobs = 20, numOrders = 15): Promise<{ message: string }> => {
+      const response = await fetch(`${API_BASE}/testdb/seed`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ num_jobs: numJobs, num_orders: numOrders }),
+      });
+      return handleResponse<{ message: string }>(response);
+    },
+
+    clear: async (): Promise<{ message: string }> => {
+      const response = await fetch(`${API_BASE}/testdb/clear`, {
+        method: "POST",
+      });
+      return handleResponse<{ message: string }>(response);
+    },
+
+    query: async (
+      idoName: string,
+      properties?: string[],
+      filterExpr?: string,
+      limit = 100
+    ): Promise<TestDbQueryResult> => {
+      const response = await fetch(`${API_BASE}/testdb/query`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ido_name: idoName,
+          properties,
+          filter_expr: filterExpr,
+          limit,
+        }),
+      });
+      return handleResponse<TestDbQueryResult>(response);
+    },
+
+    tables: async (): Promise<string[]> => {
+      const response = await fetch(`${API_BASE}/testdb/tables`);
+      return handleResponse<string[]>(response);
+    },
+
+    getTableData: async (tableName: string, limit = 50): Promise<TestDbQueryResult> => {
+      const response = await fetch(`${API_BASE}/testdb/tables/${tableName}?limit=${limit}`);
+      return handleResponse<TestDbQueryResult>(response);
     },
   },
 };
