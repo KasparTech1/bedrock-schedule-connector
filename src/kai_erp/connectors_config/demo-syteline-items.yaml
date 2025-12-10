@@ -1,0 +1,121 @@
+# DEMO SyteLine 10 Items Connector
+# Live connection to Kaspar Development Workshop environment
+
+id: demo-syteline-items
+name: DEMO - SyteLine Items
+description: >
+  Demo connector showing live connection to SyteLine 10 CloudSuite.
+  Queries the SLItems IDO from the Kaspar Development Workshop test environment.
+version: "1.0.0"
+category: Demo
+icon: zap
+tags:
+  - demo
+  - syteline
+  - items
+  - live
+  - test-environment
+status: published
+
+# Connection Configuration
+connection:
+  type: syteline10
+  base_url: https://Csi10g.erpsl.inforcloudsuite.com
+  config_name: DUU6QAFE74D2YDYW_TST_DALS
+  # Note: Credentials should be provided via environment variables
+  # SL10_USERNAME and SL10_PASSWORD
+
+# Data Sources - SyteLine 10 IDOs
+idos:
+  - name: SLItems
+    alias: items
+    description: Item master data from SyteLine
+    properties:
+      - name: Item
+        alias: item_number
+        type: string
+        description: Item number/SKU
+        filterable: true
+        primary_key: true
+      - name: Description
+        alias: description
+        type: string
+        description: Item description
+        filterable: true
+      - name: ProductCode
+        alias: product_code
+        type: string
+        description: Product code category
+        filterable: true
+      - name: UM
+        alias: unit_of_measure
+        type: string
+        description: Unit of measure
+      - name: Stat
+        alias: status
+        type: string
+        description: Item status (A=Active)
+        filterable: true
+      - name: itmUf_colorcode01
+        alias: color_code_1
+        type: string
+        description: Custom color code 1
+      - name: itmUf_colorCode02
+        alias: color_code_2
+        type: string
+        description: Custom color code 2
+      - name: itmUf_ColorCode03
+        alias: color_code_3
+        type: string
+        description: Custom color code 3
+
+# Output Fields (what the connector returns)
+output_fields:
+  - name: item_number
+    type: string
+    description: Item number/SKU
+  - name: description
+    type: string
+    description: Item description
+  - name: product_code
+    type: string
+    description: Product code category
+  - name: unit_of_measure
+    type: string
+    description: Unit of measure
+  - name: status
+    type: string
+    description: Item status
+  - name: color_code_1
+    type: string
+    description: Custom color code 1
+  - name: color_code_2
+    type: string
+    description: Custom color code 2
+  - name: color_code_3
+    type: string
+    description: Custom color code 3
+
+# MCP Tools
+tools:
+  - name: get_syteline_items
+    description: >
+      Query items from the live SyteLine 10 demo environment.
+      Returns item master data including descriptions and custom color codes.
+    parameters:
+      - name: item
+        type: string
+        description: Filter by item number (partial match)
+        required: false
+      - name: product_code
+        type: string
+        description: Filter by product code
+        required: false
+      - name: limit
+        type: number
+        description: Maximum records to return (default 10)
+        default: "10"
+
+# Performance
+estimated_volume: low
+freshness_requirement: real-time
