@@ -1,0 +1,621 @@
+{
+	"info": {
+		"_postman_id": "be610d4a-5109-459a-95f6-66d3476ad1f6",
+		"name": "IMS v3 ConnectedTech Kaspar",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "2808706"
+	},
+	"item": [
+		{
+			"name": "IMS via ION API (Oauth 2.0)",
+			"item": [
+				{
+					"name": "Gateway Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{iu}}/ionapi/info",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"ionapi",
+								"info"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "ping (Application & ION)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{iu}}/{{ti}}/IONSERVICES/api/ion/messaging/service/ping",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"IONSERVICES",
+								"api",
+								"ion",
+								"messaging",
+								"service",
+								"ping"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "versions (ION)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{iu}}/{{ti}}/IONSERVICES/api/ion/messaging/service/versions",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"IONSERVICES",
+								"api",
+								"ion",
+								"messaging",
+								"service",
+								"versions"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "protocol (Application)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{iu}}/{{ti}}/IONSERVICES/api/ion/messaging/service/protocol",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"IONSERVICES",
+								"api",
+								"ion",
+								"messaging",
+								"service",
+								"protocol"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "acceptedDocuments (Application)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{iu}}/{{ti}}/IONSERVICES/api/ion/messaging/service/v3/:lid/acceptedDocuments",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"IONSERVICES",
+								"api",
+								"ion",
+								"messaging",
+								"service",
+								"v3",
+								":lid",
+								"acceptedDocuments"
+							],
+							"variable": [
+								{
+									"key": "lid",
+									"value": "lid:%2F%2F{{logicalId}}"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "multipartMessage (Application & ION)",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "MessagePayload",
+									"value": "<SyncSalesOrder xmlns=\"http://schema.infor.com/InforOAGIS/2\" xmlns:xsd=\"http://www.w3.org/2001/XMLSchema\" xmlns:xsi=\"http://www.w3.org/2001/XMLSchema-instance\" releaseID=\"9.2\" versionID=\"2.5.0\" xsi:schemaLocation=\"http://schema.infor.com/InforOAGIS/2 http://schema.infor.com/2.5.0/InforOAGIS/BODs/Developer/SyncSalesOrder.xsd\"> <ApplicationArea> <Sender> <ComponentID>erp</ComponentID> </Sender> <BODID>FP5000045:?SalesOrder&amp;verb=Sync</BODID> </ApplicationArea> <DataArea> <Sync> <ActionCriteria> <ActionExpression actionCode=\"Add\"/> </ActionCriteria> </Sync> <SalesOrder> <SalesOrderHeader> <DocumentID> <ID>FP5000045</ID> </DocumentID> <Status> <Code>Approved</Code> </Status> </SalesOrderHeader> <SalesOrderLine> <LineNumber>10</LineNumber> <Status> <Code>Open</Code> </Status> <Item> <ItemID> <ID>150.012.088</ID> </ItemID> <Description>Cutter  CU 4035 NCT II</Description> </Item> <Quantity>50</Quantity> <UnitPrice> <Amount currencyID=\"GBP\">425</Amount> </UnitPrice> </SalesOrderLine> </SalesOrder> </DataArea> </SyncSalesOrder>",
+									"contentType": "application/octet-stream",
+									"type": "text"
+								},
+								{
+									"key": "ParameterRequest",
+									"value": "{\"documentName\": \"Sync.SalesOrder\",\"fromLogicalId\": \"lid://{{logicalId}}\",\"encoding\": \"NONE\",\"characterSet\": \"UTF-8\",\"toLogicalId\": \"lid://default\"}",
+									"contentType": "application/json",
+									"type": "text"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{iu}}/{{ti}}/IONSERVICES/api/ion/messaging/service/v3/multipartMessage",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"IONSERVICES",
+								"api",
+								"ion",
+								"messaging",
+								"service",
+								"v3",
+								"multipartMessage"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CSI - Get First 10 Items - ProdCode 1500-MON",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Infor-MongooseConfig",
+								"value": "{{config}}",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "{{iu}}/{{ti}}/CSI/IDORequestService/ido/load/SLItems?properties=Item,Description,ProductCode&recordCap=10&filter=ProductCode = 'FG-100'",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"CSI",
+								"IDORequestService",
+								"ido",
+								"load",
+								"SLItems"
+							],
+							"query": [
+								{
+									"key": "properties",
+									"value": "Item,Description,ProductCode"
+								},
+								{
+									"key": "recordCap",
+									"value": "10"
+								},
+								{
+									"key": "filter",
+									"value": "ProductCode = 'FG-100'"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CSI - Insert Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Infor-MongooseConfig",
+								"value": "{{config}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"Changes\": [\r\n   {\r\n      \"Action\": 1,\r\n      \"ItemId\": \"PBT=[ue_cb_ecomm_orders]\",\r\n      \"Properties\": [\r\n         {\r\n            \"Name\": \"OrderTotal\",\r\n            \"Value\": \"150.00\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"OrderId\",\r\n            \"Value\": \"TEST01\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"PurchaseDate\",\r\n            \"Value\": \"20250611\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"CustomerEmail\",\r\n            \"Value\": \"Test@Aol.com\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"CustomerName\",\r\n            \"Value\": \"Testy Jones\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"PaymentMethod\",\r\n            \"Value\": \"Credit Card\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"OrderStatus\",\r\n            \"Value\": \"Shipped\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"Subtotal\",\r\n            \"Value\": \"100.00\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"ShippingCost\",\r\n            \"Value\": \"50\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"TaxAmount\",\r\n            \"Value\": \"0.00\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         }\r\n      ]\r\n   }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{iu}}/{{ti}}/CSI/IDORequestService/ido/update/ue_cb_ecomm_orders?refresh=true",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"CSI",
+								"IDORequestService",
+								"ido",
+								"update",
+								"ue_cb_ecomm_orders"
+							],
+							"query": [
+								{
+									"key": "properties",
+									"value": "Item,Description",
+									"disabled": true
+								},
+								{
+									"key": "recordCap",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "filter",
+									"value": "ProductCode = '1500-MON'",
+									"disabled": true
+								},
+								{
+									"key": "refresh",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CSI -Update Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Infor-MongooseConfig",
+								"value": "{{config}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"Changes\": [\r\n   {\r\n      \"Action\": 2,\r\n      \"ItemId\": \"PBT=[item] itm.ID=[02e3b775-60c6-40d6-a2c2-290881762977] itm.DT=[2024-11-04 10:48:25.550]\",\r\n      \"Properties\": [\r\n         {\r\n            \"Name\": \"Description\",\r\n            \"Value\": \"Test Description\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         },\r\n         {\r\n            \"Name\": \"ProductCode\",\r\n            \"Value\": \"P01\",\r\n            \"Modified\": true,\r\n            \"IsNull\": false\r\n         }\r\n      ]\r\n   }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{iu}}/{{ti}}/CSI/IDORequestService/ido/update/SLItems?refresh=true",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"CSI",
+								"IDORequestService",
+								"ido",
+								"update",
+								"SLItems"
+							],
+							"query": [
+								{
+									"key": "properties",
+									"value": "Item,Description",
+									"disabled": true
+								},
+								{
+									"key": "recordCap",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "filter",
+									"value": "ProductCode = '1500-MON'",
+									"disabled": true
+								},
+								{
+									"key": "refresh",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CSI - Delete Item",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Infor-MongooseConfig",
+								"value": "{{config}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n  \"Changes\": [\r\n   {\r\n      \"Action\": 4,\r\n      \"ItemId\": \"PBT=[item] itm.ID=[654f9620-9594-4e71-ab55-42ae7efc8a28] itm.DT=[2024-11-04 10:45:17.350]\"\r\n      \r\n   }\r\n  ]\r\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{iu}}/{{ti}}/CSI/IDORequestService/ido/update/SLItems?refresh=true",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"CSI",
+								"IDORequestService",
+								"ido",
+								"update",
+								"SLItems"
+							],
+							"query": [
+								{
+									"key": "properties",
+									"value": "Item,Description",
+									"disabled": true
+								},
+								{
+									"key": "recordCap",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "filter",
+									"value": "ProductCode = '1500-MON'",
+									"disabled": true
+								},
+								{
+									"key": "refresh",
+									"value": "true"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "CSI - Invoke - ue_ProcessCBOrder",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "accept",
+								"value": "application/json",
+								"type": "text"
+							},
+							{
+								"key": "X-Infor-MongooseConfig",
+								"value": "{{config}}",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "[\r\n    \"TEST01\",\r\n    \"\"\r\n]",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{iu}}/{{ti}}/CSI/IDORequestService/ido/invoke/ue_cb_ecomm_orders?method=ue_ProcessCBOrder",
+							"host": [
+								"{{iu}}"
+							],
+							"path": [
+								"{{ti}}",
+								"CSI",
+								"IDORequestService",
+								"ido",
+								"invoke",
+								"ue_cb_ecomm_orders"
+							],
+							"query": [
+								{
+									"key": "properties",
+									"value": "Item,Description",
+									"disabled": true
+								},
+								{
+									"key": "recordCap",
+									"value": "10",
+									"disabled": true
+								},
+								{
+									"key": "filter",
+									"value": "ProductCode = '1500-MON'",
+									"disabled": true
+								},
+								{
+									"key": "method",
+									"value": "ue_ProcessCBOrder"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			],
+			"auth": {
+				"type": "oauth2",
+				"oauth2": [
+					{
+						"key": "password",
+						"value": "{{sask}}",
+						"type": "string"
+					},
+					{
+						"key": "username",
+						"value": "{{saak}}",
+						"type": "string"
+					},
+					{
+						"key": "clientSecret",
+						"value": "{{cs}}",
+						"type": "string"
+					},
+					{
+						"key": "clientId",
+						"value": "{{ci}}",
+						"type": "string"
+					},
+					{
+						"key": "accessTokenUrl",
+						"value": "{{pu}}{{ot}}",
+						"type": "string"
+					},
+					{
+						"key": "grant_type",
+						"value": "password_credentials",
+						"type": "string"
+					},
+					{
+						"key": "tokenName",
+						"value": "Trafera_PRE",
+						"type": "string"
+					},
+					{
+						"key": "addTokenTo",
+						"value": "header",
+						"type": "string"
+					}
+				]
+			},
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"type": "text/javascript",
+						"exec": [
+							""
+						]
+					}
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "ti",
+			"value": "DUU6QAFE74D2YDYW_TST"
+		},
+		{
+			"key": "ci",
+			"value": "DUU6QAFE74D2YDYW_TST~pvB_0lf3Jx7bYzK4Ptegcfj3PytinBWPDTh5jxDPJD8"
+		},
+		{
+			"key": "cs",
+			"value": "sOr0p9OTbYdldP-c-33PKinNtxUmmrywZ8fp0frjuLyubfaStIiahBzMz7x4wctdSltqY5etTkB9q9LcGu0sqQ"
+		},
+		{
+			"key": "pu",
+			"value": "https://mingle-sso.inforcloudsuite.com:443/DUU6QAFE74D2YDYW_TST/as/"
+		},
+		{
+			"key": "oa",
+			"value": "authorization.oauth2"
+		},
+		{
+			"key": "ot",
+			"value": "token.oauth2"
+		},
+		{
+			"key": "saak",
+			"value": "DUU6QAFE74D2YDYW_TST#mH_lv6jcUj-uNTHCmMvIA1VEywMs4PbRqJD6ii04_HJTSpOsWPx1bZp6nbCcX8uh1QuKQ_HVHD-UZ0UvxQ7Jrg"
+		},
+		{
+			"key": "sask",
+			"value": "DLG81Px0rC64YVUq5glXrJmC646vNROgbIbnKCdLvcGXLV8mpxRHrcwRnShcBS49pNE6uoW_0h8F-SLJ6lf0bQ"
+		},
+		{
+			"key": "iu",
+			"value": "https://mingle-ionapi.inforcloudsuite.com"
+		},
+		{
+			"key": "directIMSoauthConsumerKey",
+			"value": ""
+		},
+		{
+			"key": "directIMSoauthConsumerSecret",
+			"value": ""
+		},
+		{
+			"key": "directIMSURL",
+			"value": "https://localhost:28090/api/ion/messaging/service"
+		},
+		{
+			"key": "directIMSTenant",
+			"value": "INFOR"
+		},
+		{
+			"key": "logicalId",
+			"value": "infor.ims.cp_myapp"
+		},
+		{
+			"key": "config",
+			"value": "DUU6QAFE74D2YDYW_TST_DALS",
+			"type": "string"
+		}
+	]
+}

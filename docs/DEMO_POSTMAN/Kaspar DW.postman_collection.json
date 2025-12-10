@@ -1,0 +1,406 @@
+{
+	"info": {
+		"_postman_id": "bb9a59d3-a68c-447e-bfbc-a91d96123644",
+		"name": "Kaspar DW",
+		"schema": "https://schema.getpostman.com/json/collection/v2.0.0/collection.json",
+		"_exporter_id": "2808706"
+	},
+	"item": [
+		{
+			"name": "Rest Token",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "userid",
+						"value": "DevWorkshop06"
+					},
+					{
+						"key": "password",
+						"value": "WeTest$Code1"
+					}
+				],
+				"url": "https://Csi10g.erpsl.inforcloudsuite.com/IDORequestService/MGRestService.svc/json/token/DUU6QAFE74D2YDYW_TST_DALS"
+			},
+			"response": []
+		},
+		{
+			"name": "Query_SLItems",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "userid",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "password",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "Authorization",
+						"value": "b/XdI6IQzCviZOGJ0E+002DoKUFOPmVDkwpQDbQjm3w/qkdxDUzmqvSYEZDCmJGWpA23OTlhFpxRHFz3WOsvay8V58XdIp/UIsr5TpCdMwvoO+jzjloJpqRoP6SsKySXqAQP8eWacHoRfQs4pRmjC3EILa8Wa8IbBpF5VcwbBBuOcEju6WDHE9SQ5XGZlZjWE9sTHRpv7DKNCHgppPuxeo1gmzURdA393tWdE6DlH2HRCwVUZRFGNtVFursYUUeT1vBXntGNZZb2u8yRSEF2hUFALo8VF6nQ+T7cCVfQCHZl6ItYzVvkAUXvR4A0ev8swpEezmzB+ZsixcG10UJ/nZTvPSDNcvfEPfZlVxWCElOAKEZXOraBcG2uWdxvWfkuvobPV2RzMK9Iz6tPdhFgCBJniw0jASxRHCjWPNxvMXLJRLcBQhtZiYVj65EosOudQhggPAFTZ4Dp/ftRfT1M3jMl26waOs0uNzwFmIML2Tbhie8qnXG9GvU/D5HwP4uMX76QqKIiUcCXiEsatcu4f42YwHgUHyZrU/pArH3wdp0="
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://Csi10g.erpsl.inforcloudsuite.com/IDORequestService/MGRestService.svc/json/SLItems/adv/?props=Item,Description,itmUf_colorcode01,itmUf_colorCode02,itmUf_ColorCode03,itmUf_ColorCode04,itmUf_ColorCode05,itmUf_ColorCode06&rowcap=10",
+					"protocol": "https",
+					"host": [
+						"Csi10g",
+						"erpsl",
+						"inforcloudsuite",
+						"com"
+					],
+					"path": [
+						"IDORequestService",
+						"MGRestService.svc",
+						"json",
+						"SLItems",
+						"adv",
+						""
+					],
+					"query": [
+						{
+							"key": "props",
+							"value": "Item,Description,itmUf_colorcode01,itmUf_colorCode02,itmUf_ColorCode03,itmUf_ColorCode04,itmUf_ColorCode05,itmUf_ColorCode06"
+						},
+						{
+							"key": "rowcap",
+							"value": "10"
+						},
+						{
+							"key": "orderby",
+							"value": "SerNum",
+							"disabled": true
+						},
+						{
+							"key": "parms",
+							"value": "msg",
+							"disabled": true
+						},
+						{
+							"key": "filter",
+							"value": "Stat='O'",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Invoke_CLM",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "userid",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "password",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "Authorization",
+						"value": "b/XdI6IQzCviZOGJ0E+002DoKUFOPmVDkwpQDbQjm3w/qkdxDUzmqvSYEZDCmJGWpA23OTlhFpxRHFz3WOsvay8V58XdIp/UIsr5TpCdMwvoO+jzjloJpqRoP6SsKySXqAQP8eWacHoRfQs4pRmjC3EILa8Wa8IbBpF5VcwbBBuOcEju6WDHE9SQ5XGZlZjWE9sTHRpv7DKNCHgppPuxeo1gmzURdA393tWdE6DlH2HRCwVUZRFGNtVFursYUUeT1vBXntGNZZb2u8yRSEF2hUFALo8VF6nQ+T7cCVfQCHZl6ItYzVvkAUXvR4A0ev8swpEezmzB+ZsixcG10UJ/nZTvPSDNcvfEPfZlVxWCElOAKEZXOraBcG2uWdxvWfkuvobPV2RzMK9Iz6tPdhFgCBJniw0jASxRHCjWPNxvMXLJRLcBQhtZiYVj65EosOudQhggPAFTZ4Dp/ftRfT1M3jMl26waOs0uNzwFmIML2Tbhie8qnXG9GvU/D5HwP4uMX76QqKIiUcCXiEsatcu4f42YwHgUHyZrU/pArH3wdp0="
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://Csi10g.erpsl.inforcloudsuite.com/IDORequestService/MGRestService.svc/json/ue_SLItems06/adv/?clmparms='30S','40'&clm=ue_CLM_GetItemColors&responsetype=json&ido=ue_SLItems06&props=Item,Description,ue_UbColorCode",
+					"protocol": "https",
+					"host": [
+						"Csi10g",
+						"erpsl",
+						"inforcloudsuite",
+						"com"
+					],
+					"path": [
+						"IDORequestService",
+						"MGRestService.svc",
+						"json",
+						"ue_SLItems06",
+						"adv",
+						""
+					],
+					"query": [
+						{
+							"key": "props",
+							"value": "Item,Description,itmUf_colorcode01,itmUf_colorCode02,itmUf_ColorCode03,itmUf_ColorCode04,itmUf_ColorCode05,itmUf_ColorCode06",
+							"disabled": true
+						},
+						{
+							"key": "rowcap",
+							"value": "10",
+							"disabled": true
+						},
+						{
+							"key": "orderby",
+							"value": "SerNum",
+							"disabled": true
+						},
+						{
+							"key": "clmparms",
+							"value": "'30S','40'"
+						},
+						{
+							"key": "filter",
+							"value": "",
+							"disabled": true
+						},
+						{
+							"key": "clm",
+							"value": "ue_CLM_GetItemColors"
+						},
+						{
+							"key": "responsetype",
+							"value": "json"
+						},
+						{
+							"key": "ido",
+							"value": "ue_SLItems06"
+						},
+						{
+							"key": "props",
+							"value": "Item,Description,ue_UbColorCode"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Query_ue_ItemColor06s",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "userid",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "password",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "Authorization",
+						"value": "b/XdI6IQzCviZOGJ0E+002DoKUFOPmVDkwpQDbQjm3w/qkdxDUzmqvSYEZDCmJGWpA23OTlhFpxRHFz3WOsvay8V58XdIp/UIsr5TpCdMwvoO+jzjloJpqRoP6SsKySXqAQP8eWacHoRfQs4pRmjC3EILa8Wa8IbBpF5VcwbBBuOcEju6WDHE9SQ5XGZlZjWE9sTHRpv7DKNCHgppPuxeo1gmzURdA393tWdE6DlH2HRCwVUZRFGNtVFursYUUeT1vBXntGNZZb2u8yRSEF2hUFALo8VF6nQ+T7cCVfQCHZl6ItYzVvkAUXvR4A0ev8swpEezmzB+ZsixcG10UJ/nZTvPSDNcvfEPfZlVxWCElOAKEZXOraBcG2uWdxvWfkuvobPV2RzMK9Iz6tPdhFgCBJniw0jASxRHCjWPNxvMXLJRLcBQhtZiYVj65EosOudQhggPAFTZ4Dp/ftRfT1M3jMl26waOs0uNzwFmIML2Tbhie8qnXG9GvU/D5HwP4uMX76QqKIiUcCXiEsatcu4f42YwHgUHyZrU/pArH3wdp0="
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"url": {
+					"raw": "https://Csi10g.erpsl.inforcloudsuite.com/IDORequestService/MGRestService.svc/json/ue_ItemColor06s/adv/?props=Item,Description,ColorCode,ShowInList&rowcap=10",
+					"protocol": "https",
+					"host": [
+						"Csi10g",
+						"erpsl",
+						"inforcloudsuite",
+						"com"
+					],
+					"path": [
+						"IDORequestService",
+						"MGRestService.svc",
+						"json",
+						"ue_ItemColor06s",
+						"adv",
+						""
+					],
+					"query": [
+						{
+							"key": "orderby",
+							"value": "SerNum",
+							"disabled": true
+						},
+						{
+							"key": "parms",
+							"value": "msg",
+							"disabled": true
+						},
+						{
+							"key": "filter",
+							"value": "Stat='O'",
+							"disabled": true
+						},
+						{
+							"key": "props",
+							"value": "Item,Description,ColorCode,ShowInList"
+						},
+						{
+							"key": "rowcap",
+							"value": "10"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Insert ue_ItemColor06s",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "userid",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "password",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "Authorization",
+						"value": "b/XdI6IQzCviZOGJ0E+002DoKUFOPmVDkwpQDbQjm3w/qkdxDUzmqvSYEZDCmJGWpA23OTlhFpxRHFz3WOsvay8V58XdIp/UIsr5TpCdMwvoO+jzjloJpqRoP6SsKySXqAQP8eWacHoRfQs4pRmjC3EILa8Wa8IbBpF5VcwbBBuOcEju6WDHE9SQ5XGZlZjWE9sTHRpv7DKNCHgppPuxeo1gmzURdA393tWdE6DlH2HRCwVUZRFGNtVFursYUUeT1vBXntGNZZb2u8yRSEF2hUFALo8VF6nQ+T7cCVfQCHZl6ItYzVvkAUXvR4A0ev8swpEezmzB+ZsixcG10UJ/nZTvPSDNcvfEPfZlVxWCElOAKEZXOraBcG2uWdxvWfkuvobPV2RzMK9Iz6tPdhFgCBJniw0jASxRHCjWPNxvMXLJRLcBQhtZiYVj65EosOudQhggPAFTZ4Dp/ftRfT1M3jMl26waOs0uNzwFmIML2Tbhie8qnXG9GvU/D5HwP4uMX76QqKIiUcCXiEsatcu4f42YwHgUHyZrU/pArH3wdp0="
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"Changes\": [\r\n\t\t{\r\n\t\t\t\"Action\": 1,\r\n\t\t\t\"ItemId\": \"PBT=[ue_ItemColor06s]\",\r\n\t\t\t\"Properties\": [\r\n\t\t\t\t{\r\n\t\t\t\t\t\"IsNull\": false,\r\n\t\t\t\t\t\"Modified\": true,\r\n\t\t\t\t\t\"Name\": \"Item\",\r\n\t\t\t\t\t\"Value\": \"30Q\"\r\n\t\t\t\t},\r\n\t\t\t\t{\r\n\t\t\t\t\t\"IsNull\": false,\r\n\t\t\t\t\t\"Modified\": true,\r\n\t\t\t\t\t\"Name\": \"Description\",\r\n\t\t\t\t\t\"Value\": \"TestingDesc\"\r\n\t\t\t\t},\r\n\t\t\t\t{\r\n\t\t\t\t\t\"IsNull\": false,\r\n\t\t\t\t\t\"Modified\": true,\r\n\t\t\t\t\t\"Name\": \"ColorCode\",\r\n\t\t\t\t\t\"Value\": \"PNK\"\r\n\t\t\t\t},\r\n\t\t\t\t{\r\n\t\t\t\t\t\"IsNull\": false,\r\n\t\t\t\t\t\"Modified\": true,\r\n\t\t\t\t\t\"Name\": \"ShowInList\",\r\n\t\t\t\t\t\"Value\": \"10\"\r\n\t\t\t\t}\r\n\t\t\t]\r\n\t\t}\r\n\t]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://Csi10g.erpsl.inforcloudsuite.com/IDORequestService/ido/update/ue_ItemColor06s?refresh=true",
+					"protocol": "https",
+					"host": [
+						"Csi10g",
+						"erpsl",
+						"inforcloudsuite",
+						"com"
+					],
+					"path": [
+						"IDORequestService",
+						"ido",
+						"update",
+						"ue_ItemColor06s"
+					],
+					"query": [
+						{
+							"key": "orderby",
+							"value": "SerNum",
+							"disabled": true
+						},
+						{
+							"key": "parms",
+							"value": "msg",
+							"disabled": true
+						},
+						{
+							"key": "filter",
+							"value": "Stat='O'",
+							"disabled": true
+						},
+						{
+							"key": "refresh",
+							"value": "true"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Update ue_ItemColor06s",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "userid",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "password",
+						"value": "",
+						"disabled": true
+					},
+					{
+						"key": "Authorization",
+						"value": "b/XdI6IQzCviZOGJ0E+002DoKUFOPmVDkwpQDbQjm3w/qkdxDUzmqvSYEZDCmJGWpA23OTlhFpxRHFz3WOsvay8V58XdIp/UIsr5TpCdMwvoO+jzjloJpqRoP6SsKySXqAQP8eWacHoRfQs4pRmjC3EILa8Wa8IbBpF5VcwbBBuOcEju6WDHE9SQ5XGZlZjWE9sTHRpv7DKNCHgppPuxeo1gmzURdA393tWdE6DlH2HRCwVUZRFGNtVFursYUUeT1vBXntGNZZb2u8yRSEF2hUFALo8VF6nQ+T7cCVfQCHZl6ItYzVvkAUXvR4A0ev8swpEezmzB+ZsixcG10UJ/nZTvPSDNcvfEPfZlVxWCElOAKEZXOraBcG2uWdxvWfkuvobPV2RzMK9Iz6tPdhFgCBJniw0jASxRHCjWPNxvMXLJRLcBQhtZiYVj65EosOudQhggPAFTZ4Dp/ftRfT1M3jMl26waOs0uNzwFmIML2Tbhie8qnXG9GvU/D5HwP4uMX76QqKIiUcCXiEsatcu4f42YwHgUHyZrU/pArH3wdp0="
+					},
+					{
+						"key": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n    \"Changes\": [\r\n    {\r\n        \"Action\": 2,\r\n\t\"ItemId\": \"PBT=[ue_ItemColor06] ue_ic.DT=[2025-06-10 09:23:26.173] ue_ic.ID=[b25ca4fb-2213-4361-beb4-c70bd7faffc3]\",\r\n\t\"Properties\":[\r\n\t\t{\r\n\t\t\t\"IsNull\":false,\r\n\t\t\t\"Modified\": true,\r\n\t\t\t\"Name\": \"Description\",\r\n\t\t\t\"Value\": \"New Description\"\r\n\t\t}]\r\n    }\r\n    ]\r\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "https://Csi10g.erpsl.inforcloudsuite.com/IDORequestService/ido/update/ue_ItemColor06s?refresh=true",
+					"protocol": "https",
+					"host": [
+						"Csi10g",
+						"erpsl",
+						"inforcloudsuite",
+						"com"
+					],
+					"path": [
+						"IDORequestService",
+						"ido",
+						"update",
+						"ue_ItemColor06s"
+					],
+					"query": [
+						{
+							"key": "orderby",
+							"value": "SerNum",
+							"disabled": true
+						},
+						{
+							"key": "parms",
+							"value": "msg",
+							"disabled": true
+						},
+						{
+							"key": "filter",
+							"value": "Stat='O'",
+							"disabled": true
+						},
+						{
+							"key": "refresh",
+							"value": "true"
+						}
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
