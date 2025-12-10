@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 import { Library } from "@/pages/Library";
 import { Connectors } from "@/pages/admin/Connectors";
 import { ConnectorDetail } from "@/pages/ConnectorDetail";
+import { ConnectorBuilder } from "@/pages/admin/ConnectorBuilder";
 
 const queryClient = new QueryClient();
 
@@ -15,10 +16,10 @@ function App() {
           <Route path="/" component={Library} />
           <Route path="/admin/connectors" component={Connectors} />
           <Route path="/admin/connectors/new">
-            <div className="text-center py-12">
-              <h1 className="text-2xl font-semibold">Create New Connector</h1>
-              <p className="text-muted-foreground mt-2">Coming soon...</p>
-            </div>
+            <ConnectorBuilder />
+          </Route>
+          <Route path="/admin/connectors/:id/edit">
+            {(params) => <ConnectorBuilder id={params.id} />}
           </Route>
           <Route path="/admin/connections">
             <div className="text-center py-12">
