@@ -1,0 +1,84 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# KAI ERP Connector - Docker Compose
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# Usage:
+#   docker-compose up -d        # Start in background
+#   docker-compose logs -f      # Follow logs
+#   docker-compose down         # Stop and remove
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+version: '3.8'
+
+services:
+  kai-erp-connector:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: kai-erp-connector
+    
+    restart: unless-stopped
+    
+    ports:
+      - "${PORT:-8100}:8100"
+    
+    environment:
+      # SyteLine 10 REST API
+      - SL10_BASE_URL=${SL10_BASE_URL}
+      - SL10_CONFIG_NAME=${SL10_CONFIG_NAME}
+      - SL10_USERNAME=${SL10_USERNAME}
+      - SL10_PASSWORD=${SL10_PASSWORD}
+      
+      # Data Lake (optional)
+      - LAKE_ENABLED=${LAKE_ENABLED:-false}
+      - LAKE_COMPASS_URL=${LAKE_COMPASS_URL:-}
+      - LAKE_ION_CLIENT_ID=${LAKE_ION_CLIENT_ID:-}
+      - LAKE_ION_CLIENT_SECRET=${LAKE_ION_CLIENT_SECRET:-}
+      
+      # Server
+      - PORT=8100
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ENVIRONMENT=${ENVIRONMENT:-production}
+    
+    env_file:
+      - .env
+    
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8100/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  # MCP Server (optional, for AI agent access via stdio)
+  kai-erp-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    
+    container_name: kai-erp-mcp
+    
+    profiles:
+      - mcp  # Only start with: docker-compose --profile mcp up
+    
+    environment:
+      - SL10_BASE_URL=${SL10_BASE_URL}
+      - SL10_CONFIG_NAME=${SL10_CONFIG_NAME}
+      - SL10_USERNAME=${SL10_USERNAME}
+      - SL10_PASSWORD=${SL10_PASSWORD}
+    
+    env_file:
+      - .env
+    
+    command: ["python", "-m", "kai_erp.mcp.server"]
+    
+    stdin_open: true
+    tty: true

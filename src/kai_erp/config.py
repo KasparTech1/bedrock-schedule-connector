@@ -1,0 +1,132 @@
+"""
+Configuration Management
+========================
+
+Central configuration for the KAI ERP Connector.
+All settings are loaded from environment variables with sensible defaults.
+"""
+
+from enum import Enum
+from functools import lru_cache
+from typing import Optional
+
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Environment(str, Enum):
+    """Deployment environment."""
+    DEVELOPMENT = "development"
+    STAGING = "staging"
+    PRODUCTION = "production"
+
+
+class SyteLineConfig(BaseSettings):
+    """SyteLine 10 REST API configuration."""
+    
+    model_config = SettingsConfigDict(env_prefix="SL10_")
+    
+    base_url: str = Field(
+        description="SyteLine 10 CloudSuite base URL",
+        examples=["https://xxx.erpsl.inforcloudsuite.com"]
+    )
+    config_name: str = Field(
+        description="SyteLine configuration name (e.g., XXX_TST or XXX_PRD)"
+    )
+    username: str = Field(
+        description="API username for authentication"
+    )
+    password: SecretStr = Field(
+        description="API password"
+    )
+    
+    # Timeouts
+    request_timeout_seconds: int = Field(default=30, ge=5, le=120)
+    token_refresh_minutes: int = Field(
+        default=55,
+        description="Refresh token this many minutes before expiry (tokens last 60 min)"
+    )
+
+
+class DataLakeConfig(BaseSettings):
+    """Infor Data Lake configuration (optional)."""
+    
+    model_config = SettingsConfigDict(env_prefix="LAKE_")
+    
+    enabled: bool = Field(default=False, description="Enable Data Lake queries")
+    compass_url: Optional[str] = Field(
+        default=None,
+        description="Compass SQL endpoint URL"
+    )
+    ion_client_id: Optional[str] = Field(default=None)
+    ion_client_secret: Optional[SecretStr] = Field(default=None)
+    
+    # Query limits
+    query_timeout_minutes: int = Field(default=60, ge=1, le=60)
+    max_rows_per_page: int = Field(default=100_000)
+
+
+class VolumeThresholds(BaseSettings):
+    """Volume thresholds for REST vs Data Lake routing."""
+    
+    model_config = SettingsConfigDict(env_prefix="VOLUME_")
+    
+    rest_preferred_max: int = Field(
+        default=2000,
+        description="Prefer REST below this count"
+    )
+    rest_hard_max: int = Field(
+        default=5000,
+        description="Never use REST above this count"
+    )
+    lake_preferred_min: int = Field(
+        default=10000,
+        description="Prefer Data Lake above this count"
+    )
+
+
+class ServerConfig(BaseSettings):
+    """API server configuration."""
+    
+    model_config = SettingsConfigDict(env_prefix="")
+    
+    host: str = Field(default="0.0.0.0")
+    port: int = Field(default=8100)
+    log_level: str = Field(default="INFO")
+    environment: Environment = Field(default=Environment.DEVELOPMENT)
+    
+    # CORS
+    cors_origins: list[str] = Field(
+        default=["*"],
+        description="Allowed CORS origins"
+    )
+
+
+class Config(BaseSettings):
+    """Root configuration aggregating all sub-configs."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore"
+    )
+    
+    syteline: SyteLineConfig = Field(default_factory=SyteLineConfig)
+    lake: DataLakeConfig = Field(default_factory=DataLakeConfig)
+    thresholds: VolumeThresholds = Field(default_factory=VolumeThresholds)
+    server: ServerConfig = Field(default_factory=ServerConfig)
+
+
+@lru_cache
+def get_config() -> Config:
+    """
+    Get cached configuration instance.
+    
+    Returns:
+        Config: Application configuration
+    
+    Example:
+        config = get_config()
+        print(config.syteline.base_url)
+    """
+    return Config()

@@ -1,0 +1,128 @@
+{
+  "project": "kai-erp-connector",
+  "created": "2024-12-10T00:00:00Z",
+  "updated": "2024-12-10T00:30:00Z",
+  "phase": "parallel_development",
+  "current_sync_point": 1,
+  "sync_points": {
+    "0": {
+      "name": "Pre-Work",
+      "description": "Interface contracts created",
+      "status": "complete",
+      "completed_at": "2024-12-10T00:30:00Z",
+      "completed_files": [
+        "src/kai_erp/__init__.py",
+        "src/kai_erp/config.py",
+        "src/kai_erp/core/__init__.py",
+        "src/kai_erp/core/types.py",
+        "src/kai_erp/connectors/__init__.py",
+        "src/kai_erp/connectors/base.py",
+        "src/kai_erp/models/__init__.py",
+        "src/kai_erp/models/operations.py",
+        "src/kai_erp/models/orders.py",
+        "src/kai_erp/models/customers.py",
+        "src/kai_erp/models/inventory.py",
+        "tests/conftest.py",
+        "pyproject.toml",
+        "README.md"
+      ]
+    },
+    "1": {
+      "name": "Foundation Complete",
+      "description": "All interface contracts committed and tested",
+      "status": "ready",
+      "gate_command": "pytest tests/test_models/ -v"
+    },
+    "2": {
+      "name": "Core + Connectors Ready",
+      "description": "All implementations complete",
+      "status": "pending",
+      "gate_command": "pytest tests/test_core/ tests/test_connectors/ -v"
+    },
+    "3": {
+      "name": "Integration Complete",
+      "description": "Full system operational",
+      "status": "pending",
+      "gate_command": "pytest -v && docker-compose up -d --build && curl http://localhost:8100/health"
+    }
+  },
+  "agents": {
+    "A": {
+      "name": "Core Engine Agent",
+      "status": "ready",
+      "current_task": null,
+      "waiting_for": null,
+      "blocked": false,
+      "owned_paths": [
+        "src/kai_erp/core/auth.py",
+        "src/kai_erp/core/rest_engine.py",
+        "src/kai_erp/core/staging.py",
+        "src/kai_erp/core/lake_engine.py",
+        "src/kai_erp/core/router.py",
+        "tests/test_core/"
+      ],
+      "task_queue": ["A.1", "A.2", "A.3", "A.4", "A.5", "A.6", "A.7", "A.8", "A.9"],
+      "instructions": "Start with A.2 (auth.py) - token management is foundational"
+    },
+    "B": {
+      "name": "Connectors Agent",
+      "status": "ready",
+      "current_task": null,
+      "waiting_for": null,
+      "blocked": false,
+      "owned_paths": [
+        "src/kai_erp/connectors/bedrock_ops.py",
+        "src/kai_erp/connectors/sales_orders.py",
+        "src/kai_erp/connectors/customers.py",
+        "src/kai_erp/connectors/inventory.py",
+        "tests/test_connectors/"
+      ],
+      "task_queue": ["B.8", "B.9", "B.10", "B.11", "B.12", "B.13", "B.14", "B.15"],
+      "instructions": "Models already created. Start with B.8 (bedrock_ops.py) - flagship connector"
+    },
+    "C": {
+      "name": "Infrastructure Agent",
+      "status": "ready",
+      "current_task": null,
+      "waiting_for": null,
+      "blocked": false,
+      "owned_paths": [
+        "Dockerfile",
+        "docker-compose.yml",
+        "src/kai_erp/api/main.py",
+        "src/kai_erp/api/routes/",
+        "src/kai_erp/mcp/",
+        "tests/test_api/",
+        "tests/test_mcp/"
+      ],
+      "task_queue": ["C.2", "C.3", "C.5", "C.6", "C.7", "C.8", "C.9", "C.10", "C.11", "C.12", "C.13", "C.14", "C.15", "C.16", "C.17"],
+      "instructions": "Start with C.2 (Dockerfile) and C.6 (FastAPI main.py) in parallel"
+    },
+    "lead": {
+      "name": "Lead/Orchestrator Agent",
+      "status": "complete",
+      "last_action": "Created interface contracts and project structure",
+      "owned_paths": [
+        "docs/"
+      ]
+    }
+  },
+  "completed_tasks": [
+    "Pre-work: pyproject.toml",
+    "Pre-work: src/kai_erp/__init__.py",
+    "Pre-work: src/kai_erp/config.py",
+    "Pre-work: src/kai_erp/core/__init__.py",
+    "Pre-work: src/kai_erp/core/types.py",
+    "Pre-work: src/kai_erp/connectors/__init__.py",
+    "Pre-work: src/kai_erp/connectors/base.py",
+    "Pre-work: All models (B.1-B.5)",
+    "Pre-work: tests/conftest.py"
+  ],
+  "failed_tasks": [],
+  "notes": [
+    "Pre-work complete - 3 agents can now work in parallel",
+    "Agent B: models are complete, skip to B.8 (connectors)",
+    "Agent C: pyproject.toml done, skip to C.2 (Dockerfile)",
+    "All agents should update this file when starting/completing tasks"
+  ]
+}
