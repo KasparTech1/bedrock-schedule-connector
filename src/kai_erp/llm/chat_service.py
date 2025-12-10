@@ -54,7 +54,8 @@ You have access to these tools to query live ERP data:
 
 1. **get_syteline_items** - Query item/product master data
    - Use when asked about items, products, SKUs, inventory items
-   - Parameters: item (partial match), product_code (exact), limit
+   - Parameters: item (partial/contains match), product_code (exact), limit
+   - IMPORTANT: The "item" filter does a CONTAINS match, not starts-with
 
 2. **get_syteline_customers** - Query customer master data  
    - Use when asked about customers, contacts, accounts
@@ -64,9 +65,13 @@ You have access to these tools to query live ERP data:
    - Use for advanced queries or data not covered by other tools
    - Parameters: ido_name (required), properties, filter, limit
 
-When users ask about ERP data, use the appropriate tool to fetch real data.
-Always explain what you found in a clear, helpful way.
-If no data is found, explain that and suggest alternative queries.
+CRITICAL RULES FOR PRESENTING DATA:
+- When showing results, use the EXACT field names from the data (Item, Description, ProductCode, etc.)
+- The "Item" field is the item NUMBER/ID, "ProductCode" is the product category
+- Do NOT confuse Item numbers with ProductCode - they are different fields
+- If user asks for items "starting with X", note that the filter finds items CONTAINING X
+- Present data accurately - list the actual Item numbers and their Descriptions
+- If a filter returns items that don't exactly match what user asked, explain this
 
 Current environment: Kaspar Development Workshop (Demo)
 """
@@ -284,18 +289,22 @@ class ChatService:
             # Try to detect what tool to use and call it
             tool_result = await self._smart_tool_call(user_message)
             if tool_result:
-                # Build a prompt with the data
-                enhanced_prompt = f"""The user asked: "{user_message}"
-
-I queried the ERP system and got this data:
-{tool_result}
-
-Please provide a helpful response summarizing this information for the user."""
+                # Extract search term for formatting
+                import re
+                numbers = re.findall(r'\b(\d+)\b', user_message)
+                search_term = numbers[0] if numbers else None
                 
-                messages = [
-                    {"role": "system", "content": SYSTEM_PROMPT},
-                    {"role": "user", "content": enhanced_prompt}
-                ]
+                # Pre-format the data in Python (more reliable than LLM)
+                formatted_data = self._format_items_response(tool_result, search_term)
+                
+                # For simple data queries, just return the formatted data directly
+                # The LLM was unreliable at presenting data accurately
+                content = f"Here's what I found in SyteLine:\n\n{formatted_data}"
+                
+                self.conversation.append(
+                    ChatMessage(role=MessageRole.ASSISTANT, content=content)
+                )
+                return content
             else:
                 messages = [msg.to_dict() for msg in self.conversation]
         else:
@@ -322,17 +331,24 @@ Please provide a helpful response summarizing this information for the user."""
         
         This is a fallback for models that don't support function calling.
         """
+        import re
         msg_lower = user_message.lower()
         
         try:
             # Item queries
             if any(kw in msg_lower for kw in ["item", "product", "sku", "inventory item"]):
-                # Try to extract filter
+                # Try to extract filter - prioritize numbers, then alphanumeric patterns
                 item_filter = None
-                for word in user_message.split():
-                    if word.isalnum() and len(word) >= 2 and word.upper() == word:
-                        item_filter = word
-                        break
+                
+                # First look for numbers (like "30")
+                numbers = re.findall(r'\b(\d+)\b', user_message)
+                if numbers:
+                    item_filter = numbers[0]
+                else:
+                    # Look for product code patterns like "FG-100"
+                    patterns = re.findall(r'\b([A-Z]{2,}-\d+)\b', user_message, re.IGNORECASE)
+                    if patterns:
+                        item_filter = patterns[0]
                 
                 result = await self._execute_tool("get_syteline_items", {
                     "item": item_filter,
@@ -347,14 +363,74 @@ Please provide a helpful response summarizing this information for the user."""
             
             # Generic "show me" or "list" queries
             elif any(kw in msg_lower for kw in ["show", "list", "find", "get"]):
-                # Default to items
-                result = await self._execute_tool("get_syteline_items", {"limit": 5})
+                # Try to extract any number filter
+                numbers = re.findall(r'\b(\d+)\b', user_message)
+                item_filter = numbers[0] if numbers else None
+                result = await self._execute_tool("get_syteline_items", {
+                    "item": item_filter,
+                    "limit": 10
+                })
                 return result
         
         except Exception as e:
             logger.error("Smart tool call failed", error=str(e))
         
         return None
+    
+    def _format_items_response(self, raw_json: str, search_term: str | None) -> str:
+        """Format items data with clear analysis."""
+        import json
+        try:
+            data = json.loads(raw_json)
+            
+            # Handle different data formats
+            items = []
+            if isinstance(data, list):
+                items = data
+            elif isinstance(data, dict):
+                # MCP tool returns {"items": [...], "count": N, ...}
+                items = data.get("items", data.get("records", []))
+            
+            if not items:
+                return "No items found."
+            
+            lines = []
+            starts_with = []
+            contains = []
+            
+            for item in items:
+                item_num = item.get("Item", "")
+                desc = item.get("Description", "")[:45]
+                pc = item.get("ProductCode", "")
+                stat = "Active" if item.get("Stat") == "A" else item.get("Stat", "")
+                
+                row = f"| {item_num} | {desc} | {pc} | {stat} |"
+                
+                if search_term and item_num.upper().startswith(search_term.upper()):
+                    starts_with.append(row)
+                else:
+                    contains.append(row)
+            
+            # Build table with clear sections
+            lines.append("| Item | Description | ProductCode | Status |")
+            lines.append("|------|-------------|-------------|--------|")
+            
+            if search_term:
+                if starts_with:
+                    lines.append(f"\n✅ **Items starting with '{search_term}':**")
+                    lines.extend(starts_with)
+                if contains:
+                    lines.append(f"\n⚠️ **Items containing '{search_term}' (not starting with it):**")
+                    lines.extend(contains)
+            else:
+                lines.extend(starts_with + contains)
+            
+            lines.append(f"\n*{len(items)} items found*")
+            
+            return "\n".join(lines)
+        except Exception as e:
+            logger.error("Format error", error=str(e))
+            return raw_json
 
     def clear_history(self) -> None:
         """Clear conversation history (keeps system prompt)."""
