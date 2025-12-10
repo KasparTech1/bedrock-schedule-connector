@@ -82,3 +82,47 @@ services:
     
     stdin_open: true
     tty: true
+
+  # ═══════════════════════════════════════════════════════════════════════════
+  # Local LLM Service (Ollama)
+  # ═══════════════════════════════════════════════════════════════════════════
+  # 
+  # Runs a local LLM for handling user prompts and calling MCP tools.
+  # Start with: docker-compose --profile llm up
+  #
+  # After starting, pull a model:
+  #   docker exec kai-ollama ollama pull llama3.2:1b
+  #   docker exec kai-ollama ollama pull phi3:mini
+  #
+  ollama:
+    image: ollama/ollama:latest
+    container_name: kai-ollama
+    
+    profiles:
+      - llm  # Only start with: docker-compose --profile llm up
+    
+    ports:
+      - "11434:11434"
+    
+    volumes:
+      - ollama_data:/root/.ollama
+    
+    environment:
+      - OLLAMA_HOST=0.0.0.0
+    
+    deploy:
+      resources:
+        limits:
+          memory: 4G
+    
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    
+    restart: unless-stopped
+
+volumes:
+  ollama_data:

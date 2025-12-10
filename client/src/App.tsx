@@ -8,6 +8,7 @@ import { ConnectorBuilder } from "@/pages/admin/ConnectorBuilder";
 import { Connections } from "@/pages/admin/Connections";
 import { Settings } from "@/pages/admin/Settings";
 import { DemoTryIt } from "@/pages/DemoTryIt";
+import { Chat } from "@/pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ function App() {
           </Route>
           <Route path="/admin/connections" component={Connections} />
           <Route path="/admin/settings" component={Settings} />
+          <Route path="/chat" component={Chat} />
           <Route path="/connector/:id">
             {(params) => <ConnectorDetail id={params.id} />}
           </Route>

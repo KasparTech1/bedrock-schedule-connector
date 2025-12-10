@@ -9,6 +9,7 @@ import {
   Sun,
   ChevronLeft,
   ChevronRight,
+  MessageSquare,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -29,6 +30,7 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: "Connector Library", href: "/", icon: Library, section: "Browse" },
+  { title: "Chat Assistant", href: "/chat", icon: MessageSquare, section: "Browse" },
   { title: "Connectors", href: "/admin/connectors", icon: Puzzle, section: "Admin" },
   { title: "Connections", href: "/admin/connections", icon: Database, section: "Admin" },
   { title: "Settings", href: "/admin/settings", icon: Settings, section: "Admin" },

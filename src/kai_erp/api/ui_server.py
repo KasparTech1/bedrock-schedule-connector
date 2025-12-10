@@ -15,6 +15,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from kai_erp.api.registry_routes import router as registry_router
 from kai_erp.api.testdb_routes import router as testdb_router
 from kai_erp.api.demo_routes import router as demo_router
+from kai_erp.api.chat_routes import router as chat_router
 
 logger = structlog.get_logger(__name__)
 
@@ -50,6 +51,7 @@ app.add_middleware(
 app.include_router(registry_router)
 app.include_router(testdb_router)
 app.include_router(demo_router)
+app.include_router(chat_router)
 
 
 @app.get("/health")
