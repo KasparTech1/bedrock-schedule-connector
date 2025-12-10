@@ -1,0 +1,177 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Core Colors - Kai Labs Theme */
+    --background: 210 4% 98%;
+    --foreground: 210 6% 12%;
+    --border: 210 5% 88%;
+
+    /* Card & Container */
+    --card: 210 4% 96%;
+    --card-foreground: 210 6% 14%;
+    --card-border: 210 5% 90%;
+
+    /* Sidebar */
+    --sidebar: 210 4% 94%;
+    --sidebar-foreground: 210 6% 16%;
+    --sidebar-border: 210 5% 86%;
+    --sidebar-primary: 211 92% 42%;
+    --sidebar-primary-foreground: 210 100% 98%;
+    --sidebar-accent: 210 6% 88%;
+    --sidebar-accent-foreground: 210 8% 24%;
+    --sidebar-ring: 211 92% 42%;
+
+    /* Popover */
+    --popover: 210 5% 92%;
+    --popover-foreground: 210 6% 16%;
+    --popover-border: 210 5% 84%;
+
+    /* Primary (Blue) - Kai Blue */
+    --primary: 211 92% 42%;
+    --primary-foreground: 210 100% 98%;
+
+    /* Secondary */
+    --secondary: 210 6% 88%;
+    --secondary-foreground: 210 8% 24%;
+
+    /* Muted */
+    --muted: 210 8% 90%;
+    --muted-foreground: 210 7% 38%;
+
+    /* Accent */
+    --accent: 210 12% 89%;
+    --accent-foreground: 210 10% 26%;
+
+    /* Semantic Colors */
+    --destructive: 0 84% 48%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+
+    /* Form Inputs */
+    --input: 210 8% 72%;
+    --ring: 211 92% 42%;
+
+    /* Chart Colors */
+    --chart-1: 211 92% 42%;
+    --chart-2: 180 84% 38%;
+    --chart-3: 280 76% 46%;
+    --chart-4: 32 92% 52%;
+    --chart-5: 152 68% 42%;
+
+    /* Interaction Overlays */
+    --elevate-1: rgba(0, 0, 0, 0.03);
+    --elevate-2: rgba(0, 0, 0, 0.08);
+
+    /* Border Radius */
+    --radius: 0.5rem;
+
+    /* Sidebar Dimensions */
+    --sidebar-width: 16rem;
+    --sidebar-width-icon: 3rem;
+  }
+
+  .dark {
+    /* Core Colors */
+    --background: 210 6% 8%;
+    --foreground: 210 5% 92%;
+    --border: 210 6% 18%;
+
+    /* Card & Container */
+    --card: 210 6% 11%;
+    --card-foreground: 210 5% 90%;
+    --card-border: 210 6% 20%;
+
+    /* Sidebar */
+    --sidebar: 210 6% 13%;
+    --sidebar-foreground: 210 5% 88%;
+    --sidebar-border: 210 6% 22%;
+    --sidebar-primary: 211 88% 48%;
+    --sidebar-primary-foreground: 210 100% 98%;
+    --sidebar-accent: 210 8% 20%;
+    --sidebar-accent-foreground: 210 6% 82%;
+    --sidebar-ring: 211 88% 48%;
+
+    /* Popover */
+    --popover: 210 6% 15%;
+    --popover-foreground: 210 5% 86%;
+    --popover-border: 210 6% 24%;
+
+    /* Primary (Blue) */
+    --primary: 211 88% 48%;
+    --primary-foreground: 210 100% 98%;
+
+    /* Secondary */
+    --secondary: 210 8% 20%;
+    --secondary-foreground: 210 6% 82%;
+
+    /* Muted */
+    --muted: 210 10% 18%;
+    --muted-foreground: 210 8% 68%;
+
+    /* Accent */
+    --accent: 210 14% 17%;
+    --accent-foreground: 210 8% 78%;
+
+    /* Semantic Colors */
+    --destructive: 0 78% 52%;
+    --destructive-foreground: 0 0% 100%;
+    --warning: 38 88% 58%;
+    --warning-foreground: 0 0% 100%;
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    /* Form Inputs */
+    --input: 210 10% 32%;
+    --ring: 211 88% 48%;
+
+    /* Chart Colors (brightened for dark mode) */
+    --chart-1: 211 88% 58%;
+    --chart-2: 180 78% 52%;
+    --chart-3: 280 70% 62%;
+    --chart-4: 32 88% 62%;
+    --chart-5: 152 62% 56%;
+
+    /* Interaction Overlays */
+    --elevate-1: rgba(255, 255, 255, 0.04);
+    --elevate-2: rgba(255, 255, 255, 0.09);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  /* Hover elevation - adds subtle overlay */
+  .hover-elevate {
+    @apply relative overflow-hidden transition-colors;
+  }
+
+  .hover-elevate::after {
+    content: "";
+    @apply absolute inset-0 pointer-events-none transition-colors;
+  }
+
+  .hover-elevate:hover::after {
+    background-color: var(--elevate-1);
+  }
+
+  /* Active elevation - stronger overlay */
+  .active-elevate-2:active::after {
+    background-color: var(--elevate-2);
+  }
+}
