@@ -220,11 +220,12 @@ class BaseConnector(ABC, Generic[T]):
         # Fetch all IDOs in parallel
         ido_data = await self.rest_engine.parallel_fetch(spec.idos)
         
-        # Stage in DuckDB and execute join
+        # Stage in DuckDB and execute join with parameterized query
         result = await self.rest_engine.staging.execute_join(
             ido_data,
             spec.join_sql,
-            spec.table_aliases
+            spec.table_aliases,
+            spec.join_params  # Pass parameters to prevent SQL injection
         )
         
         return result

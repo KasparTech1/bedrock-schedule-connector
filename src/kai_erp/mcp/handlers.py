@@ -14,6 +14,7 @@ from kai_erp.connectors import (
     BedrockOpsScheduler,
     CustomerSearch,
     InventoryStatus,
+    OrderAvailabilityConnector,
     SalesOrderTracker,
 )
 
@@ -231,12 +232,104 @@ async def handle_inventory_status(
         }
 
 
+async def handle_order_availability(
+    engine: RestEngine,
+    customer: str | None = None,
+    item: str | None = None,
+    due_within_days: int | None = None,
+    shortage_only: bool = False
+) -> dict[str, Any]:
+    """
+    Handle get_order_availability tool call.
+    
+    Args:
+        engine: REST engine instance
+        customer: Optional customer name filter
+        item: Optional item filter
+        due_within_days: Optional filter for orders due within N days
+        shortage_only: Only return orders with shortages
+    
+    Returns:
+        Tool result dict with order availability data
+    """
+    connector = OrderAvailabilityConnector(engine)
+    
+    filters = {}
+    if customer:
+        filters["customer"] = customer
+    if item:
+        filters["item"] = item
+    if due_within_days:
+        filters["due_within_days"] = due_within_days
+    
+    try:
+        result = await connector.execute(filters=filters if filters else None)
+        
+        # Post-filter for shortage_only if requested
+        orders = result.data
+        if shortage_only:
+            orders = [
+                o for o in orders 
+                if o.get("qty_remaining", 0) > o.get("qty_remaining_covered", 0)
+            ]
+        
+        # Calculate summary statistics
+        total_remaining = sum(o.get("qty_remaining", 0) for o in orders)
+        total_covered = sum(o.get("qty_remaining_covered", 0) for o in orders)
+        total_shortage = max(0, total_remaining - total_covered)
+        total_amount = sum(o.get("line_amount", 0) for o in orders)
+        
+        lines_fully_covered = sum(
+            1 for o in orders 
+            if o.get("qty_remaining_covered", 0) >= o.get("qty_remaining", 0)
+        )
+        lines_with_shortage = len(orders) - lines_fully_covered
+        
+        return {
+            "success": True,
+            "data": {
+                "order_lines": orders,
+                "summary": {
+                    "total_lines": len(orders),
+                    "total_qty_remaining": total_remaining,
+                    "total_qty_covered": total_covered,
+                    "total_shortage": total_shortage,
+                    "total_line_amount": total_amount,
+                    "lines_fully_covered": lines_fully_covered,
+                    "lines_with_shortage": lines_with_shortage,
+                    "coverage_percentage": round(
+                        (total_covered / total_remaining * 100) if total_remaining > 0 else 100,
+                        1
+                    ),
+                    "data_source": result.source.value,
+                    "query_ms": result.latency_ms
+                }
+            }
+        }
+    
+    except VolumeExceedsLimit as e:
+        return {
+            "success": False,
+            "error": {
+                "message": str(e),
+                "suggestion": "Add a customer or item filter to reduce results."
+            }
+        }
+    except Exception as e:
+        logger.error("Order availability handler failed", error=str(e))
+        return {
+            "success": False,
+            "error": {"message": str(e)}
+        }
+
+
 # Handler dispatch map
 HANDLERS = {
     "get_production_schedule": handle_production_schedule,
     "get_open_orders": handle_open_orders,
     "search_customers": handle_customer_search,
     "get_inventory_status": handle_inventory_status,
+    "get_order_availability": handle_order_availability,
 }
 
 

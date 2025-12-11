@@ -96,22 +96,34 @@ class StagingEngine:
         df = pd.DataFrame(records) if records else pd.DataFrame()
         self.load_dataframe(table_name, df)
     
-    def execute_query(self, sql: str) -> list[dict[str, Any]]:
+    def execute_query(
+        self, 
+        sql: str, 
+        params: Optional[list[Any]] = None
+    ) -> list[dict[str, Any]]:
         """
         Execute SQL query and return results as list of dicts.
         
         Args:
-            sql: SQL query string
+            sql: SQL query string (use ? for parameterized values)
+            params: Optional list of parameters for parameterized queries
         
         Returns:
             List of result dictionaries
+        
+        Note:
+            Always use parameterized queries with user-provided values
+            to prevent SQL injection attacks.
         """
         if not self._conn:
             raise RuntimeError("StagingEngine not initialized (use context manager)")
         
         logger.debug("Executing staging query", sql=sql[:100] + "..." if len(sql) > 100 else sql)
         
-        result = self._conn.execute(sql)
+        if params:
+            result = self._conn.execute(sql, params)
+        else:
+            result = self._conn.execute(sql)
         df = result.fetchdf()
         
         logger.debug(f"Query returned {len(df)} rows")
@@ -138,7 +150,8 @@ class StagingEngine:
         self,
         ido_data: dict[str, list[dict[str, Any]]],
         join_sql: str,
-        table_aliases: Optional[dict[str, str]] = None
+        table_aliases: Optional[dict[str, str]] = None,
+        join_params: Optional[list[Any]] = None
     ) -> list[dict[str, Any]]:
         """
         Load multiple IDO responses and execute join query.
@@ -147,8 +160,9 @@ class StagingEngine:
         
         Args:
             ido_data: Dict mapping IDO names to their response records
-            join_sql: SQL query to join the tables
+            join_sql: SQL query to join the tables (use ? for parameters)
             table_aliases: Optional mapping of IDO names to table names in SQL
+            join_params: Optional parameters for parameterized queries
         
         Returns:
             Joined result records
@@ -159,7 +173,8 @@ class StagingEngine:
                     "SLJobs": [...],
                     "SLItems": [...]
                 },
-                join_sql="SELECT j.Job, i.Description FROM SLJobs j JOIN SLItems i ON j.Item = i.Item"
+                join_sql="SELECT j.Job, i.Description FROM SLJobs j JOIN SLItems i ON j.Item = i.Item WHERE j.Wc = ?",
+                join_params=["WELD-01"]
             )
         """
         # Load each IDO response into a table
@@ -167,8 +182,8 @@ class StagingEngine:
             table_name = table_aliases.get(ido_name, ido_name) if table_aliases else ido_name
             self.load_records(table_name, records)
         
-        # Execute join query
-        return self.execute_query(join_sql)
+        # Execute join query with optional parameters
+        return self.execute_query(join_sql, join_params)
     
     def table_exists(self, table_name: str) -> bool:
         """Check if a table exists in the staging database."""

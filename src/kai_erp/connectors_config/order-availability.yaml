@@ -1,0 +1,239 @@
+# Order Availability Connector
+# ============================
+# Emulates the Syteline 8 TBE_Customer_Order_Availability_Add_Release_Date stored procedure
+
+id: order-availability
+name: Order Availability
+description: |
+  Customer order availability with inventory allocation analysis.
+  Shows open orders with how inventory is allocated from different production stages.
+  Calculates coverage and estimated completion dates based on business day calendar.
+version: "1.0.0"
+category: Demo
+icon: "📦"
+tags:
+  - live
+  - orders
+  - availability
+  - allocation
+  - wip
+  - bedrock
+status: published
+
+# IDOs required for this connector
+idos:
+  - name: SLCos
+    alias: co
+    description: Customer order headers
+    properties:
+      - name: CoNum
+        type: string
+        primary_key: true
+      - name: CustNum
+        type: string
+      - name: CustSeq
+        type: integer
+      - name: OrderDate
+        type: datetime
+      - name: Stat
+        type: string
+        filterable: true
+    default_filter: "Stat='O'"
+
+  - name: SLCoitems
+    alias: coitem
+    description: Customer order line items
+    properties:
+      - name: CoNum
+        type: string
+      - name: CoLine
+        type: integer
+      - name: CoRelease
+        type: integer
+      - name: Item
+        type: string
+      - name: QtyOrdered
+        type: decimal
+      - name: QtyShipped
+        type: decimal
+      - name: DueDate
+        type: datetime
+      - name: Price
+        type: decimal
+      - name: Stat
+        type: string
+    default_filter: "Stat='O'"
+
+  - name: SLItemwhses
+    alias: inventory
+    description: Inventory by warehouse
+    properties:
+      - name: Item
+        type: string
+      - name: Whse
+        type: string
+      - name: QtyOnHand
+        type: decimal
+      - name: QtyAllocCo
+        type: decimal
+      - name: QtyWip
+        type: decimal
+    default_filter: "Whse='Main'"
+
+  - name: SLJobs
+    alias: job
+    description: Manufacturing jobs
+    properties:
+      - name: Job
+        type: string
+        primary_key: true
+      - name: Suffix
+        type: integer
+      - name: Item
+        type: string
+      - name: QtyReleased
+        type: decimal
+      - name: Stat
+        type: string
+      - name: Type
+        type: string
+      - name: JobDate
+        type: datetime
+    default_filter: "Type='J'"
+
+  - name: SLJobRoutes
+    alias: jobroute
+    description: Job operations/routing
+    properties:
+      - name: Job
+        type: string
+      - name: Suffix
+        type: integer
+      - name: Wc
+        type: string
+      - name: QtyReceived
+        type: decimal
+      - name: QtyComplete
+        type: decimal
+
+  - name: SLCustaddrs
+    alias: custaddr
+    description: Customer addresses
+    properties:
+      - name: CustNum
+        type: string
+      - name: CustSeq
+        type: integer
+      - name: Name
+        type: string
+
+  - name: SLItems
+    alias: item
+    description: Item master
+    properties:
+      - name: Item
+        type: string
+        primary_key: true
+      - name: Description
+        type: string
+      - name: DrawingNbr
+        type: string
+
+# Join logic
+joins:
+  - type: left
+    left_ido: SLCos
+    right_ido: SLCoitems
+    left_key: CoNum
+    right_key: CoNum
+  - type: left
+    left_ido: SLCoitems
+    right_ido: SLItems
+    left_key: Item
+    right_key: Item
+  - type: left
+    left_ido: SLCos
+    right_ido: SLCustaddrs
+    left_key: "CustNum,CustSeq"
+    right_key: "CustNum,CustSeq"
+  - type: left
+    left_ido: SLCoitems
+    right_ido: SLItemwhses
+    left_key: Item
+    right_key: Item
+
+# Output fields
+output_fields:
+  - name: co_data_id
+    type: integer
+    description: Row identifier
+  - name: co_num
+    type: string
+    description: Customer order number
+  - name: co_line
+    type: integer
+    description: Line number
+  - name: customer_name
+    type: string
+    description: Customer name
+  - name: due_date
+    type: date
+    description: Due date
+  - name: item
+    type: string
+    description: Item number
+  - name: item_description
+    type: string
+    description: Item description
+  - name: qty_remaining
+    type: decimal
+    description: Quantity remaining to ship
+  - name: qty_remaining_covered
+    type: decimal
+    description: Quantity covered by inventory/WIP
+  - name: qty_on_hand
+    type: decimal
+    description: Allocated from on-hand
+  - name: allocated_from_paint
+    type: decimal
+    description: Allocated from paint queue
+  - name: allocated_from_blast
+    type: decimal
+    description: Allocated from blast queue
+  - name: allocated_from_released_weld_fab
+    type: decimal
+    description: Allocated from weld/fab
+  - name: weld_fab_completion_date
+    type: date
+    description: Est. weld/fab completion (4 business days)
+  - name: blast_completion_date
+    type: date
+    description: Est. blast completion (7 business days)
+  - name: paint_assembly_completion_date
+    type: date
+    description: Est. paint/assembly completion (10 business days)
+
+# Tool definitions
+tools:
+  - name: get_order_availability
+    description: |
+      Get customer order availability with inventory allocation analysis.
+      Shows how inventory is allocated from On Hand → Paint → Blast → Weld/Fab.
+    parameters:
+      - name: customer
+        type: string
+        description: Customer name filter (partial match)
+        required: false
+      - name: item
+        type: string
+        description: Item number filter (partial match)
+        required: false
+      - name: shortage_only
+        type: boolean
+        description: Only show orders with shortages
+        required: false
+        default: "false"
+
+# Estimated volume for routing decisions
+estimated_volume: high  # ~1500 lines
+freshness_requirement: realtime

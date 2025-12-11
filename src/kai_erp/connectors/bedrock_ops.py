@@ -18,6 +18,7 @@ from datetime import datetime
 from typing import Any, Optional
 
 from kai_erp.connectors.base import BaseConnector
+from kai_erp.core.security import ODataSanitizer, validate_filter_value
 from kai_erp.core.types import IDOSpec, RestQuerySpec
 from kai_erp.models.operations import OperationStatus, ScheduledOperation
 
@@ -48,17 +49,24 @@ class BedrockOpsScheduler(BaseConnector[ScheduledOperation]):
         Define REST API access pattern for production schedule.
         
         Fetches 6 IDOs and joins them to create complete operation view.
+        Uses parameterized queries to prevent SQL injection.
         """
-        # Build job filter
-        job_filter = "Stat='R'"  # Released jobs only
+        # Build job filter - OData filters for API calls (with sanitization)
+        job_filter_parts = ["Stat='R'"]  # Released jobs only
         if filters:
             if filters.get("job"):
-                job_filter += f" and Job='{filters['job']}'"
+                safe_job = validate_filter_value(filters["job"])
+                job_filter_parts.append(ODataSanitizer.build_equals_filter("Job", safe_job))
+        job_filter = ODataSanitizer.build_and_filter(job_filter_parts)
         
-        # Build jobroute filter
+        # Build jobroute filter for API call (with sanitization)
         jobroute_filter = None
         if filters and filters.get("work_center"):
-            jobroute_filter = f"Wc='{filters['work_center']}'"
+            safe_wc = validate_filter_value(filters["work_center"])
+            jobroute_filter = ODataSanitizer.build_equals_filter("Wc", safe_wc)
+        
+        # Build parameterized join SQL
+        join_sql, join_params = self._build_join_sql(filters)
         
         return RestQuerySpec(
             idos=[
@@ -98,11 +106,20 @@ class BedrockOpsScheduler(BaseConnector[ScheduledOperation]):
                     properties=["Wc", "Description"]
                 )
             ],
-            join_sql=self._build_join_sql(filters)
+            join_sql=join_sql,
+            join_params=join_params
         )
     
-    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> str:
-        """Build the DuckDB join SQL with optional filters."""
+    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> tuple[str, list[Any]]:
+        """
+        Build the DuckDB join SQL with optional filters.
+        
+        Returns:
+            Tuple of (sql_query, parameters) for parameterized execution.
+            This prevents SQL injection attacks.
+        """
+        params: list[Any] = []
+        
         base_sql = """
             SELECT 
                 j.Job,
@@ -149,7 +166,7 @@ class BedrockOpsScheduler(BaseConnector[ScheduledOperation]):
                 ON jr.Wc = wc.Wc
         """
         
-        # Add WHERE clauses based on filters
+        # Add WHERE clauses based on filters using parameterized queries
         where_clauses = []
         
         if filters:
@@ -157,10 +174,12 @@ class BedrockOpsScheduler(BaseConnector[ScheduledOperation]):
                 where_clauses.append("COALESCE(jr.QtyComplete, 0) < j.QtyReleased")
             
             if filters.get("work_center"):
-                where_clauses.append(f"jr.Wc = '{filters['work_center']}'")
+                where_clauses.append("jr.Wc = ?")
+                params.append(filters["work_center"])
             
             if filters.get("job"):
-                where_clauses.append(f"j.Job = '{filters['job']}'")
+                where_clauses.append("j.Job = ?")
+                params.append(filters["job"])
         else:
             # Default: exclude completed
             where_clauses.append("COALESCE(jr.QtyComplete, 0) < j.QtyReleased")
@@ -170,7 +189,7 @@ class BedrockOpsScheduler(BaseConnector[ScheduledOperation]):
         
         base_sql += " ORDER BY js.SchedStart, j.Job, jr.OperNum"
         
-        return base_sql
+        return base_sql, params
     
     def get_lake_query(self, filters: Optional[dict[str, Any]] = None) -> str:
         """
@@ -211,12 +230,18 @@ class BedrockOpsScheduler(BaseConnector[ScheduledOperation]):
             WHERE j.stat = 'R'
         """
         
-        # Apply filters
+        # Apply filters with sanitization to prevent SQL injection
         if filters:
             if filters.get("work_center"):
-                base_query += f" AND jr.wc = '{filters['work_center']}'"
+                safe_wc = ODataSanitizer.escape_string(
+                    validate_filter_value(filters["work_center"])
+                )
+                base_query += f" AND jr.wc = '{safe_wc}'"
             if filters.get("job"):
-                base_query += f" AND j.job = '{filters['job']}'"
+                safe_job = ODataSanitizer.escape_string(
+                    validate_filter_value(filters["job"])
+                )
+                base_query += f" AND j.job = '{safe_job}'"
         
         base_query += " ORDER BY js.sched_start, j.job, jr.oper_num"
         

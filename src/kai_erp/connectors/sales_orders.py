@@ -15,6 +15,7 @@ from datetime import date, datetime
 from typing import Any, Optional
 
 from kai_erp.connectors.base import BaseConnector
+from kai_erp.core.security import ODataSanitizer, validate_filter_value
 from kai_erp.core.types import IDOSpec, RestQuerySpec
 from kai_erp.models.orders import OrderLine, OrderStatus, SalesOrder
 
@@ -38,15 +39,23 @@ class SalesOrderTracker(BaseConnector[SalesOrder]):
     def get_rest_spec(self, filters: Optional[dict[str, Any]] = None) -> RestQuerySpec:
         """Define REST API access pattern for sales orders."""
         
-        # Build order filter - open orders only
-        order_filter = "Stat='O'"  # Open orders
+        # Build order filter - open orders only (with sanitization)
+        order_filter_parts = ["Stat='O'"]  # Open orders
         
         if filters:
             if filters.get("customer"):
-                order_filter += f" and CustNum like '%{filters['customer']}%'"
+                safe_customer = validate_filter_value(filters["customer"])
+                order_filter_parts.append(
+                    ODataSanitizer.build_like_filter("CustNum", safe_customer, "contains")
+                )
             if filters.get("days_out"):
                 # Filter by due date within N days
                 pass  # Would need date calculation
+        
+        order_filter = ODataSanitizer.build_and_filter(order_filter_parts)
+        
+        # Build parameterized join SQL
+        join_sql, join_params = self._build_join_sql(filters)
         
         return RestQuerySpec(
             idos=[
@@ -74,12 +83,20 @@ class SalesOrderTracker(BaseConnector[SalesOrder]):
                     properties=["Item", "Description"]
                 )
             ],
-            join_sql=self._build_join_sql(filters)
+            join_sql=join_sql,
+            join_params=join_params
         )
     
-    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> str:
-        """Build the DuckDB join SQL."""
-        return """
+    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> tuple[str, list[Any]]:
+        """
+        Build the DuckDB join SQL with parameterized queries.
+        
+        Returns:
+            Tuple of (sql_query, parameters) for safe execution.
+        """
+        params: list[Any] = []
+        
+        sql = """
             SELECT 
                 o.CoNum as OrderNum,
                 o.CustNum as CustomerNum,
@@ -105,9 +122,20 @@ class SalesOrderTracker(BaseConnector[SalesOrder]):
             LEFT JOIN SLCoitems oi ON o.CoNum = oi.CoNum
             LEFT JOIN SLCustomers c ON o.CustNum = c.CustNum
             LEFT JOIN SLItems i ON oi.Item = i.Item
-            
-            ORDER BY o.DueDate, o.CoNum, oi.CoLine
         """
+        
+        where_parts = []
+        if filters:
+            if filters.get("customer"):
+                where_parts.append("c.Name LIKE ?")
+                params.append(f"%{filters['customer']}%")
+        
+        if where_parts:
+            sql += " WHERE " + " AND ".join(where_parts)
+        
+        sql += " ORDER BY o.DueDate, o.CoNum, oi.CoLine"
+        
+        return sql, params
     
     def get_lake_query(self, filters: Optional[dict[str, Any]] = None) -> str:
         """Define Data Lake SQL query."""

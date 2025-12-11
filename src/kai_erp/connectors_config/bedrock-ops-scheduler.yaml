@@ -1,201 +1,260 @@
-# Bedrock Ops Scheduler Connector
-# Production schedule visibility for Bedrock Truck Beds
-
 id: bedrock-ops-scheduler
 name: Bedrock Ops Scheduler
-description: >
-  Production schedule visibility for Bedrock Truck Beds manufacturing operations.
-  Track jobs, work centers, and completion status in real-time.
-version: "1.0.0"
+description: 'Production schedule visibility for Bedrock Truck Beds manufacturing
+  operations. Track jobs, work centers, and completion status in real-time.
+
+  '
+version: 1.0.0
 category: Manufacturing
 icon: factory
 tags:
-  - production
-  - jobs
-  - schedule
-  - work-centers
-  - manufacturing
+- production
+- jobs
+- schedule
+- work-centers
+- manufacturing
+- live
 status: published
-
-# Data Sources - SyteLine 10 IDOs
 idos:
-  - name: SLJobRoutes
-    alias: job_routes
-    description: Job routing and work center assignments
-    properties:
-      - name: Job
-        alias: job_number
-        type: string
-        description: Job identifier
-        filterable: true
-        primary_key: true
-      - name: Suffix
-        alias: suffix
-        type: number
-        description: Job suffix
-      - name: OperNum
-        alias: operation_number
-        type: number
-        description: Operation sequence number
-      - name: Wc
-        alias: work_center
-        type: string
-        description: Work center code
-        filterable: true
-      - name: WcDescription
-        alias: work_center_name
-        type: string
-        description: Work center description
-      - name: StartDate
-        alias: start_date
-        type: date
-        description: Scheduled start date
-        filterable: true
-        sortable: true
-      - name: EndDate
-        alias: end_date
-        type: date
-        description: Scheduled end date
-        sortable: true
-      - name: Status
-        alias: status
-        type: string
-        description: "Operation status: R=Released, S=Started, C=Complete"
-        filterable: true
-    default_filter: "Status IN ('R', 'S')"
-
-  - name: SLJobs
-    alias: jobs
-    description: Job header information
-    properties:
-      - name: Job
-        alias: job_number
-        type: string
-        primary_key: true
-      - name: Suffix
-        alias: suffix
-        type: number
-      - name: Item
-        alias: item_number
-        type: string
-        description: Item being produced
-        filterable: true
-      - name: Description
-        alias: description
-        type: string
-      - name: QtyReleased
-        alias: quantity_ordered
-        type: number
-      - name: QtyComplete
-        alias: quantity_complete
-        type: number
-      - name: CustNum
-        alias: customer_number
-        type: string
-        filterable: true
-      - name: CustName
-        alias: customer_name
-        type: string
-
-# Join Configuration
-joins:
-  - type: INNER
-    left_ido: job_routes
-    right_ido: jobs
-    left_key: Job
-    right_key: Job
-
-# Custom Join SQL for DuckDB staging
-join_sql: |
-  SELECT 
-    jr.Job as job_number,
-    jr.Suffix as suffix,
-    jr.OperNum as operation_number,
-    jr.Wc as work_center,
-    jr.WcDescription as work_center_name,
-    jr.StartDate as start_date,
-    jr.EndDate as end_date,
-    jr.Status as status,
-    j.Item as item_number,
-    j.Description as description,
-    j.QtyReleased as quantity_ordered,
-    j.QtyComplete as quantity_complete,
-    j.CustNum as customer_number,
-    j.CustName as customer_name
-  FROM job_routes jr
-  INNER JOIN jobs j ON jr.Job = j.Job AND jr.Suffix = j.Suffix
-
-# Output Fields (what the connector returns)
-output_fields:
-  - name: job_number
+- name: SLJobRoutes
+  alias: job_routes
+  description: Job routing and work center assignments
+  properties:
+  - name: Job
+    alias: job_number
     type: string
     description: Job identifier
-  - name: suffix
+    filterable: true
+    sortable: false
+    primary_key: true
+  - name: Suffix
+    alias: suffix
     type: number
     description: Job suffix
-  - name: operation_number
+    filterable: false
+    sortable: false
+    primary_key: false
+  - name: OperNum
+    alias: operation_number
     type: number
     description: Operation sequence number
-  - name: work_center
+    filterable: false
+    sortable: false
+    primary_key: false
+  - name: Wc
+    alias: work_center
     type: string
     description: Work center code
-  - name: work_center_name
+    filterable: true
+    sortable: false
+    primary_key: false
+  - name: WcDescription
+    alias: work_center_name
     type: string
     description: Work center description
-  - name: start_date
+    filterable: false
+    sortable: false
+    primary_key: false
+  - name: StartDate
+    alias: start_date
     type: date
     description: Scheduled start date
-  - name: end_date
+    filterable: true
+    sortable: true
+    primary_key: false
+  - name: EndDate
+    alias: end_date
     type: date
     description: Scheduled end date
-  - name: status
+    filterable: false
+    sortable: true
+    primary_key: false
+  - name: Status
+    alias: status
     type: string
-    description: "Operation status: R=Released, S=Started, C=Complete"
-  - name: item_number
+    description: 'Operation status: R=Released, S=Started, C=Complete'
+    filterable: true
+    sortable: false
+    primary_key: false
+  default_filter: Status IN ('R', 'S')
+- name: SLJobs
+  alias: jobs
+  description: Job header information
+  properties:
+  - name: Job
+    alias: job_number
+    type: string
+    filterable: false
+    sortable: false
+    primary_key: true
+  - name: Suffix
+    alias: suffix
+    type: number
+    filterable: false
+    sortable: false
+    primary_key: false
+  - name: Item
+    alias: item_number
     type: string
     description: Item being produced
-  - name: description
+    filterable: true
+    sortable: false
+    primary_key: false
+  - name: Description
+    alias: description
     type: string
-    description: Item description
-  - name: quantity_ordered
+    filterable: false
+    sortable: false
+    primary_key: false
+  - name: QtyReleased
+    alias: quantity_ordered
     type: number
-    description: Quantity ordered
-  - name: quantity_complete
+    filterable: false
+    sortable: false
+    primary_key: false
+  - name: QtyComplete
+    alias: quantity_complete
     type: number
-    description: Quantity completed
-  - name: customer_number
+    filterable: false
+    sortable: false
+    primary_key: false
+  - name: CustNum
+    alias: customer_number
     type: string
-    description: Customer number
-  - name: customer_name
+    filterable: true
+    sortable: false
+    primary_key: false
+  - name: CustName
+    alias: customer_name
     type: string
-    description: Customer name
-
-# MCP Tools
+    filterable: false
+    sortable: false
+    primary_key: false
+joins:
+- type: INNER
+  left_ido: job_routes
+  right_ido: jobs
+  left_key: Job
+  right_key: Job
+join_sql: "SELECT \n  jr.Job as job_number,\n  jr.Suffix as suffix,\n  jr.OperNum\
+  \ as operation_number,\n  jr.Wc as work_center,\n  jr.WcDescription as work_center_name,\n\
+  \  jr.StartDate as start_date,\n  jr.EndDate as end_date,\n  jr.Status as status,\n\
+  \  j.Item as item_number,\n  j.Description as description,\n  j.QtyReleased as quantity_ordered,\n\
+  \  j.QtyComplete as quantity_complete,\n  j.CustNum as customer_number,\n  j.CustName\
+  \ as customer_name\nFROM job_routes jr\nINNER JOIN jobs j ON jr.Job = j.Job AND\
+  \ jr.Suffix = j.Suffix\n"
+output_fields:
+- name: job_number
+  type: string
+  description: Job identifier
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: suffix
+  type: number
+  description: Job suffix
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: operation_number
+  type: number
+  description: Operation sequence number
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: work_center
+  type: string
+  description: Work center code
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: work_center_name
+  type: string
+  description: Work center description
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: start_date
+  type: date
+  description: Scheduled start date
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: end_date
+  type: date
+  description: Scheduled end date
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: status
+  type: string
+  description: 'Operation status: R=Released, S=Started, C=Complete'
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: item_number
+  type: string
+  description: Item being produced
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: description
+  type: string
+  description: Item description
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: quantity_ordered
+  type: number
+  description: Quantity ordered
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: quantity_complete
+  type: number
+  description: Quantity completed
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: customer_number
+  type: string
+  description: Customer number
+  filterable: false
+  sortable: false
+  primary_key: false
+- name: customer_name
+  type: string
+  description: Customer name
+  filterable: false
+  sortable: false
+  primary_key: false
 tools:
-  - name: get_production_schedule
-    description: >
-      Get the current production schedule for Bedrock Truck Beds.
-      Shows jobs at work centers with their status and completion progress.
-    parameters:
-      - name: work_center
-        type: string
-        description: Filter by work center code (optional)
-        required: false
-      - name: status
-        type: string
-        description: "Filter by status: R=Released, S=Started, C=Complete"
-        required: false
-        enum: ["R", "S", "C"]
-      - name: start_date
-        type: string
-        description: Filter jobs starting on or after this date (YYYY-MM-DD)
-        required: false
-      - name: limit
-        type: number
-        description: Maximum number of records to return
-        required: false
-        default: "100"
+- name: get_production_schedule
+  description: 'Get the current production schedule for Bedrock Truck Beds. Shows
+    jobs at work centers with their status and completion progress.
 
-# Performance
+    '
+  parameters:
+  - name: work_center
+    type: string
+    description: Filter by work center code (optional)
+    required: false
+  - name: status
+    type: string
+    description: 'Filter by status: R=Released, S=Started, C=Complete'
+    required: false
+    enum:
+    - R
+    - S
+    - C
+  - name: start_date
+    type: string
+    description: Filter jobs starting on or after this date (YYYY-MM-DD)
+    required: false
+  - name: limit
+    type: number
+    description: Maximum number of records to return
+    required: false
+    default: '100'
 estimated_volume: medium
 freshness_requirement: real-time

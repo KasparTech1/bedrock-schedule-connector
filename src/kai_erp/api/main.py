@@ -10,10 +10,16 @@ from contextlib import asynccontextmanager
 from typing import Any
 
 import structlog
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from kai_erp.config import get_config
+from kai_erp.api.rate_limit import limiter, rate_limit_exceeded_handler
+from kai_erp.api.errors import setup_exception_handlers
+from kai_erp.api.dependencies import get_engine_manager, get_optional_engine
+from kai_erp.api.metrics import setup_metrics
 from kai_erp.core import RestEngine
 from kai_erp.connectors import (
     BedrockOpsScheduler,
@@ -23,33 +29,45 @@ from kai_erp.connectors import (
 )
 from kai_erp.api.registry_routes import router as registry_router
 from kai_erp.api.testdb_routes import router as testdb_router
+from kai_erp.api.bedrock_routes import router as bedrock_router
+from kai_erp.api.legacy_routes import router as legacy_router
+from kai_erp.api.public_api import router as public_api_router
+from kai_erp.api.auth_routes import router as auth_router
 
 logger = structlog.get_logger(__name__)
 
-# Global engine instance (initialized on startup)
-_engine: RestEngine | None = None
+# Compatibility: older tests patch this symbol directly.
+# The API now uses EngineManager + dependencies, but keeping this avoids AttributeError.
+_engine = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler for startup/shutdown."""
-    global _engine
-    
     config = get_config()
+    manager = get_engine_manager()
     
     logger.info("Starting KAI ERP Connector API")
     
-    # Initialize REST engine
-    _engine = RestEngine(config.syteline)
-    await _engine.__aenter__()
+    # Initialize REST engine only if SyteLine config is provided.
+    # This allows the API/UI to boot in dev/test environments without ERP credentials.
+    syteline_ready = (
+        bool(config.syteline.base_url)
+        and bool(config.syteline.config_name)
+        and bool(config.syteline.username)
+        and bool(config.syteline.password.get_secret_value())
+    )
+    if syteline_ready:
+        await manager.initialize(config.syteline)
+    else:
+        logger.warning("SyteLine not configured; skipping engine init")
     
     logger.info("API ready", port=config.server.port)
     
     yield
     
     # Cleanup
-    if _engine:
-        await _engine.__aexit__(None, None, None)
+    await manager.shutdown()
     
     logger.info("API shutdown complete")
 
@@ -74,9 +92,23 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Configure rate limiting
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# Configure structured error handling
+setup_exception_handlers(app)
+
+# Configure Prometheus metrics
+setup_metrics(app)
+
 # Include routers
+app.include_router(auth_router)  # Authentication endpoints (/auth/token, /auth/refresh)
 app.include_router(registry_router)
 app.include_router(testdb_router)
+app.include_router(bedrock_router)  # Bedrock production schedule (Mongoose REST API)
+app.include_router(legacy_router)  # Legacy ERP connectors (Global Shop)
+app.include_router(public_api_router)  # Public API with authentication (X-API-Key)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -84,7 +116,8 @@ app.include_router(testdb_router)
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.get("/health")
-async def health_check() -> dict[str, Any]:
+@limiter.limit("120/minute")  # Higher limit for health checks (monitoring)
+async def health_check(request: Request) -> dict[str, Any]:
     """
     Health check endpoint.
     
@@ -102,7 +135,10 @@ async def health_check() -> dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.get("/bedrock/schedule")
+@limiter.limit("30/minute")  # Rate limit for data queries
 async def get_production_schedule(
+    request: Request,
+    engine: RestEngine | None = Depends(get_optional_engine),
     work_center: str | None = Query(
         None,
         description="Filter by work center code (e.g., 'WELD-01')"
@@ -122,10 +158,10 @@ async def get_production_schedule(
     Returns scheduled operations showing what's being manufactured,
     where, and progress status.
     """
-    if not _engine:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    
-    connector = BedrockOpsScheduler(_engine)
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Service not initialized. REST engine unavailable.")
+
+    connector = BedrockOpsScheduler(engine)
     
     filters = {}
     if work_center:
@@ -156,7 +192,10 @@ async def get_production_schedule(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.get("/sales/orders")
+@limiter.limit("30/minute")
 async def get_open_orders(
+    request: Request,
+    engine: RestEngine | None = Depends(get_optional_engine),
     customer: str | None = Query(
         None,
         description="Filter by customer name or number (partial match)"
@@ -171,10 +210,10 @@ async def get_open_orders(
     
     Returns customer orders with line items, quantities, and due dates.
     """
-    if not _engine:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    
-    connector = SalesOrderTracker(_engine)
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Service not initialized. REST engine unavailable.")
+
+    connector = SalesOrderTracker(engine)
     
     filters = {}
     if customer:
@@ -203,7 +242,10 @@ async def get_open_orders(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.get("/customers/search")
+@limiter.limit("30/minute")
 async def search_customers(
+    request: Request,
+    engine: RestEngine | None = Depends(get_optional_engine),
     query: str = Query(
         ...,
         description="Search term: name, number, city, or state"
@@ -218,10 +260,10 @@ async def search_customers(
     
     Returns customer details including contact info and account status.
     """
-    if not _engine:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    
-    connector = CustomerSearch(_engine)
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Service not initialized. REST engine unavailable.")
+
+    connector = CustomerSearch(engine)
     
     filters = {
         "query": query,
@@ -249,7 +291,10 @@ async def search_customers(
 # ─────────────────────────────────────────────────────────────────────────────
 
 @app.get("/inventory/status")
+@limiter.limit("30/minute")
 async def get_inventory_status(
+    request: Request,
+    engine: RestEngine | None = Depends(get_optional_engine),
     item: str | None = Query(
         None,
         description="Item number to look up"
@@ -268,10 +313,10 @@ async def get_inventory_status(
     
     Returns quantity on hand, available, and location info.
     """
-    if not _engine:
-        raise HTTPException(status_code=503, detail="Service not initialized")
-    
-    connector = InventoryStatus(_engine)
+    if engine is None:
+        raise HTTPException(status_code=503, detail="Service not initialized. REST engine unavailable.")
+
+    connector = InventoryStatus(engine)
     
     filters = {}
     if item:

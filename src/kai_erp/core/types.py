@@ -69,7 +69,8 @@ class RestQuerySpec:
     
     Attributes:
         idos: List of IDO specifications to fetch in parallel
-        join_sql: DuckDB SQL to join the fetched data
+        join_sql: DuckDB SQL to join the fetched data (use ? for parameters)
+        join_params: Parameters for the join SQL query (prevents SQL injection)
         
     Example:
         RestQuerySpec(
@@ -77,11 +78,15 @@ class RestQuerySpec:
                 IDOSpec("SLJobs", ["Job", "Item"]),
                 IDOSpec("SLItems", ["Item", "Description"])
             ],
-            join_sql="SELECT j.Job, i.Description FROM SLJobs j JOIN SLItems i ON j.Item = i.Item"
+            join_sql="SELECT j.Job, i.Description FROM SLJobs j JOIN SLItems i ON j.Item = i.Item WHERE j.Wc = ?",
+            join_params=["WELD-01"]
         )
     """
     idos: list[IDOSpec]
     join_sql: str
+    
+    # Parameters for parameterized queries (prevents SQL injection)
+    join_params: list[Any] = field(default_factory=list)
     
     # Optional table aliases for when IDO name differs from table in SQL
     table_aliases: dict[str, str] = field(default_factory=dict)
@@ -130,14 +135,14 @@ class TokenInfo:
     @property
     def is_expired(self) -> bool:
         """Check if token has expired."""
-        return datetime.utcnow() >= self.expires_at
+        return datetime.now(timezone.utc) >= self.expires_at
     
     @property
     def should_refresh(self, buffer_minutes: int = 5) -> bool:
         """Check if token should be refreshed (within buffer of expiry)."""
         from datetime import timedelta
         refresh_at = self.expires_at - timedelta(minutes=buffer_minutes)
-        return datetime.utcnow() >= refresh_at
+        return datetime.now(timezone.utc) >= refresh_at
 
 
 class VolumeExceedsLimit(Exception):

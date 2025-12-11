@@ -6,7 +6,7 @@ Based on the Kaspar DW Postman collection patterns.
 
 import logging
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 import httpx
@@ -60,7 +60,7 @@ class SyteLineClient:
             Valid authentication token.
         """
         # Check if we have a valid token
-        if self._token and self._token_expires and datetime.now() < self._token_expires:
+        if self._token and self._token_expires and datetime.now(timezone.utc) < self._token_expires:
             return self._token
 
         # Request new token
@@ -89,7 +89,7 @@ class SyteLineClient:
             self._token = response.text.strip().strip('"')
         
         # Tokens typically last 60 minutes, refresh at 55
-        self._token_expires = datetime.now() + timedelta(minutes=55)
+        self._token_expires = datetime.now(timezone.utc) + timedelta(minutes=55)
         
         logger.info("Token acquired successfully")
         return self._token

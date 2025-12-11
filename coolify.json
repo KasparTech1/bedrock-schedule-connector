@@ -1,0 +1,41 @@
+{
+  "$schema": "https://coolify.io/schema/coolify.json",
+  "name": "KAI ERP Connector",
+  "description": "SyteLine ERP connector with REST API and React frontend",
+  "build": {
+    "type": "docker-compose",
+    "file": "docker-compose.yml"
+  },
+  "services": {
+    "kai-erp-connector": {
+      "healthcheck": {
+        "path": "/health",
+        "port": 8100,
+        "interval": 30
+      }
+    },
+    "kai-erp-frontend": {
+      "healthcheck": {
+        "path": "/",
+        "port": 80,
+        "interval": 30
+      },
+      "domains": ["kai-erp.${COOLIFY_FQDN}"]
+    }
+  },
+  "environment": {
+    "required": [
+      "SL10_BASE_URL",
+      "SL10_CONFIG_NAME", 
+      "SL10_USERNAME",
+      "SL10_PASSWORD"
+    ],
+    "optional": [
+      "API_PORT",
+      "FRONTEND_PORT",
+      "LOG_LEVEL",
+      "ENVIRONMENT",
+      "LAKE_ENABLED"
+    ]
+  }
+}

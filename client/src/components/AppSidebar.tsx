@@ -9,7 +9,13 @@ import {
   Sun,
   ChevronLeft,
   ChevronRight,
-  MessageSquare,
+  Archive,
+  Truck,
+  Zap,
+  Users,
+  Package,
+  Key,
+  FlaskConical,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -30,9 +36,14 @@ interface NavItem {
 
 const navItems: NavItem[] = [
   { title: "Connector Library", href: "/", icon: Library, section: "Browse" },
-  { title: "Chat Assistant", href: "/chat", icon: MessageSquare, section: "Browse" },
-  { title: "Connectors", href: "/admin/connectors", icon: Puzzle, section: "Admin" },
-  { title: "Connections", href: "/admin/connections", icon: Database, section: "Admin" },
+  { title: "Production Flow", href: "/tools/flow-optimizer", icon: Zap, section: "LiveTools" },
+  { title: "Customer Search", href: "/tools/customer-search", icon: Users, section: "LiveTools" },
+  { title: "Order Availability", href: "/tools/order-availability", icon: Package, section: "LiveTools" },
+  { title: "Legacy Systems", href: "/legacy", icon: Archive, section: "Legacy" },
+  { title: "Connector Builder", href: "/admin/connectors", icon: Puzzle, section: "Admin" },
+  { title: "Data Sources", href: "/admin/connections", icon: Database, section: "Admin" },
+  { title: "Sandbox", href: "/admin/sandbox", icon: FlaskConical, section: "Admin" },
+  { title: "API Keys", href: "/admin/api", icon: Key, section: "Admin" },
   { title: "Settings", href: "/admin/settings", icon: Settings, section: "Admin" },
 ];
 
@@ -51,6 +62,8 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
   };
 
   const browseItems = navItems.filter((item) => item.section === "Browse");
+  const liveToolsItems = navItems.filter((item) => item.section === "LiveTools");
+  const legacyItems = navItems.filter((item) => item.section === "Legacy");
   const adminItems = navItems.filter((item) => item.section === "Admin");
 
   return (
@@ -87,7 +100,7 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
           {/* Browse Section */}
           {!collapsed && (
             <div className="px-4 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Browse
+              Catalog
             </div>
           )}
           <div className="space-y-1 px-2">
@@ -104,10 +117,50 @@ export function AppSidebar({ onNavigate }: AppSidebarProps) {
 
           <Separator className="my-4" />
 
+          {/* Live Tool Connectors Section */}
+          {!collapsed && (
+            <div className="px-4 mb-2 text-xs font-semibold text-green-600 uppercase tracking-wide">
+              Bedrock Production
+            </div>
+          )}
+          <div className="space-y-1 px-2">
+            {liveToolsItems.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                isActive={location === item.href || location.startsWith(item.href)}
+                collapsed={collapsed}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+
+          <Separator className="my-4" />
+
+          {/* Legacy ERP Section */}
+          {!collapsed && (
+            <div className="px-4 mb-2 text-xs font-semibold text-amber-600 uppercase tracking-wide">
+              Legacy Systems
+            </div>
+          )}
+          <div className="space-y-1 px-2">
+            {legacyItems.map((item) => (
+              <NavLink
+                key={item.href}
+                item={item}
+                isActive={location === item.href || location.startsWith(item.href + "/")}
+                collapsed={collapsed}
+                onNavigate={onNavigate}
+              />
+            ))}
+          </div>
+
+          <Separator className="my-4" />
+
           {/* Admin Section */}
           {!collapsed && (
             <div className="px-4 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-              Admin
+              Administration
             </div>
           )}
           <div className="space-y-1 px-2">

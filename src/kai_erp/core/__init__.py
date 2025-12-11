@@ -25,6 +25,7 @@ from kai_erp.core.auth import AuthenticatedClient, TokenManager
 from kai_erp.core.rest_engine import RestEngine
 from kai_erp.core.staging import StagingEngine
 from kai_erp.core.router import QueryRouter
+from kai_erp.core.security import ODataSanitizer, validate_filter_value
 
 __all__ = [
     # Types
@@ -43,4 +44,7 @@ __all__ = [
     "RestEngine",
     "StagingEngine",
     "QueryRouter",
+    # Security
+    "ODataSanitizer",
+    "validate_filter_value",
 ]

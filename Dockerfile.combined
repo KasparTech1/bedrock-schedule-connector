@@ -1,0 +1,96 @@
+# ═══════════════════════════════════════════════════════════════════════════
+# KAI ERP Connector - Combined Single Container
+# ═══════════════════════════════════════════════════════════════════════════
+#
+# This Dockerfile creates a single container with both:
+# - FastAPI backend (Python)
+# - React frontend (served via Nginx)
+#
+# Ideal for simpler deployments (Coolify single-service, smaller VPS, etc.)
+#
+# Build: docker build -f Dockerfile.combined -t kai-erp:latest .
+# Run:   docker run -p 80:80 --env-file .env kai-erp:latest
+#
+# ═══════════════════════════════════════════════════════════════════════════
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 1: Build Python Backend
+# ─────────────────────────────────────────────────────────────────────────────
+FROM python:3.11-slim AS python-builder
+
+WORKDIR /app
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY pyproject.toml ./
+RUN python -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+COPY . .
+RUN pip install --no-cache-dir -e .
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 2: Build React Frontend
+# ─────────────────────────────────────────────────────────────────────────────
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/client
+
+# Copy package files
+COPY client/package*.json ./
+
+# Install dependencies
+RUN npm ci --only=production=false
+
+# Copy source and build
+COPY client/ ./
+RUN npm run build
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Stage 3: Production Runtime
+# ─────────────────────────────────────────────────────────────────────────────
+FROM python:3.11-slim AS runtime
+
+# Install nginx and supervisor
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    nginx \
+    supervisor \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+# Copy Python virtual environment
+COPY --from=python-builder /opt/venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
+
+# Copy Python application
+COPY --from=python-builder /app/src ./src
+
+# Copy built React frontend
+COPY --from=frontend-builder /app/client/dist /usr/share/nginx/html
+
+# Copy nginx configuration
+COPY nginx.combined.conf /etc/nginx/nginx.conf
+
+# Copy supervisor configuration
+COPY supervisord.conf /etc/supervisor/conf.d/supervisord.conf
+
+# Environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV API_PORT=8100
+
+# Expose ports (Nginx serves both frontend and proxies to backend)
+EXPOSE 80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+    CMD curl -f http://localhost/health || exit 1
+
+# Start supervisor (manages both nginx and uvicorn)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/supervisord.conf"]

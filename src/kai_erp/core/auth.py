@@ -11,7 +11,7 @@ Key features:
 """
 
 import asyncio
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import httpx
@@ -114,7 +114,7 @@ class TokenManager:
         
         # Refresh if within buffer of expiry
         refresh_at = self._token.expires_at - timedelta(minutes=self.REFRESH_BUFFER_MINUTES)
-        return datetime.utcnow() >= refresh_at
+        return datetime.now(timezone.utc) >= refresh_at
     
     async def _acquire_token(self) -> None:
         """
@@ -154,7 +154,7 @@ class TokenManager:
             
             # Calculate expiry time
             expires_in = data.get("expires_in", self.TOKEN_LIFETIME_MINUTES * 60)
-            expires_at = datetime.utcnow() + timedelta(seconds=expires_in)
+            expires_at = datetime.now(timezone.utc) + timedelta(seconds=expires_in)
             
             self._token = TokenInfo(
                 access_token=data["access_token"],

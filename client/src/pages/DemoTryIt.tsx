@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { Link } from "wouter";
 import {
@@ -9,20 +9,12 @@ import {
   Zap,
   CheckCircle2,
   XCircle,
-  MessageSquare,
-  Send,
-  Bot,
-  User,
-  ChevronDown,
-  ChevronUp,
-  Sparkles,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Textarea } from "@/components/ui/textarea";
 
 interface DemoHealthResponse {
   status: string;
@@ -38,97 +30,10 @@ interface DemoItemsResponse {
   count: number;
 }
 
-interface ChatMessage {
-  role: "user" | "assistant";
-  content: string;
-  timestamp: Date;
-}
-
-interface OllamaStatus {
-  available: boolean;
-  model: string;
-}
-
 export function DemoTryIt() {
   const [itemFilter, setItemFilter] = useState("");
   const [productCode, setProductCode] = useState("");
   const [limit, setLimit] = useState("10");
-
-  // Chat state
-  const [chatOpen, setChatOpen] = useState(false);
-  const [chatMessage, setChatMessage] = useState("");
-  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
-  const chatEndRef = useRef<HTMLDivElement>(null);
-
-  // Scroll chat to bottom
-  useEffect(() => {
-    if (chatOpen) {
-      chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-    }
-  }, [chatHistory, chatOpen]);
-
-  // Check LLM status
-  const llmStatusQuery = useQuery<OllamaStatus>({
-    queryKey: ["ollama-status"],
-    queryFn: async () => {
-      const res = await fetch("/api/chat/status");
-      if (!res.ok) throw new Error("Failed to check status");
-      return res.json();
-    },
-    refetchInterval: 30000,
-  });
-
-  // Send chat message
-  const sendChatMessage = async (message: string) => {
-    if (!message.trim() || isTyping) return;
-
-    // Add user message
-    const userMsg: ChatMessage = {
-      role: "user",
-      content: message,
-      timestamp: new Date(),
-    };
-    setChatHistory((prev) => [...prev, userMsg]);
-    setChatMessage("");
-    setIsTyping(true);
-
-    try {
-      const res = await fetch("/api/chat/send-simple", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message }),
-      });
-
-      if (!res.ok) throw new Error("Chat failed");
-
-      const data = await res.json();
-
-      // Add assistant response
-      const assistantMsg: ChatMessage = {
-        role: "assistant",
-        content: data.response,
-        timestamp: new Date(),
-      };
-      setChatHistory((prev) => [...prev, assistantMsg]);
-    } catch {
-      const errorMsg: ChatMessage = {
-        role: "assistant",
-        content: "Sorry, I encountered an error. Please try again.",
-        timestamp: new Date(),
-      };
-      setChatHistory((prev) => [...prev, errorMsg]);
-    } finally {
-      setIsTyping(false);
-    }
-  };
-
-  const handleChatKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      sendChatMessage(chatMessage);
-    }
-  };
 
   // Health check query
   const healthQuery = useQuery<DemoHealthResponse>({
@@ -369,155 +274,6 @@ export function DemoTryIt() {
           </CardContent>
         </Card>
       )}
-
-      {/* AI Chat Bar */}
-      <Card className="border-primary/20">
-        <CardHeader
-          className="cursor-pointer hover:bg-muted/50 transition-colors"
-          onClick={() => setChatOpen(!chatOpen)}
-        >
-          <div className="flex items-center justify-between">
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
-              AI Assistant
-              {llmStatusQuery.data?.available && (
-                <Badge variant="secondary" className="text-xs">
-                  {llmStatusQuery.data.model}
-                </Badge>
-              )}
-            </CardTitle>
-            <div className="flex items-center gap-2">
-              {llmStatusQuery.data?.available ? (
-                <Badge className="bg-green-500 text-xs">
-                  <CheckCircle2 className="w-3 h-3 mr-1" />
-                  Online
-                </Badge>
-              ) : (
-                <Badge variant="secondary" className="text-xs">
-                  <XCircle className="w-3 h-3 mr-1" />
-                  Offline
-                </Badge>
-              )}
-              <Button variant="ghost" size="sm">
-                {chatOpen ? (
-                  <ChevronDown className="w-4 h-4" />
-                ) : (
-                  <ChevronUp className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </div>
-          <CardDescription>
-            Ask questions about SyteLine items in natural language
-          </CardDescription>
-        </CardHeader>
-
-        {chatOpen && (
-          <CardContent className="pt-0">
-            {/* Chat Messages */}
-            <div className="border rounded-lg mb-3 h-64 overflow-y-auto bg-muted/30">
-              {chatHistory.length === 0 ? (
-                <div className="h-full flex flex-col items-center justify-center text-muted-foreground">
-                  <MessageSquare className="w-8 h-8 mb-2 opacity-50" />
-                  <p className="text-sm">Ask me about SyteLine items</p>
-                  <div className="flex flex-wrap gap-2 mt-3 justify-center px-4">
-                    {[
-                      "Show me items starting with 30",
-                      "What products are available?",
-                      "Find active items",
-                    ].map((suggestion) => (
-                      <Button
-                        key={suggestion}
-                        variant="outline"
-                        size="sm"
-                        className="text-xs"
-                        onClick={() => sendChatMessage(suggestion)}
-                        disabled={!llmStatusQuery.data?.available}
-                      >
-                        {suggestion}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
-              ) : (
-                <div className="p-3 space-y-3">
-                  {chatHistory.map((msg, i) => (
-                    <div
-                      key={i}
-                      className={`flex gap-2 ${
-                        msg.role === "user" ? "justify-end" : "justify-start"
-                      }`}
-                    >
-                      {msg.role === "assistant" && (
-                        <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                          <Bot className="w-3 h-3 text-primary" />
-                        </div>
-                      )}
-                      <div
-                        className={`max-w-[80%] rounded-lg p-2 text-sm ${
-                          msg.role === "user"
-                            ? "bg-primary text-primary-foreground"
-                            : "bg-background border"
-                        }`}
-                      >
-                        <p className="whitespace-pre-wrap">{msg.content}</p>
-                      </div>
-                      {msg.role === "user" && (
-                        <div className="w-6 h-6 rounded-full bg-primary flex items-center justify-center flex-shrink-0">
-                          <User className="w-3 h-3 text-primary-foreground" />
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                  {isTyping && (
-                    <div className="flex gap-2 justify-start">
-                      <div className="w-6 h-6 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                        <Bot className="w-3 h-3 text-primary" />
-                      </div>
-                      <div className="bg-background border rounded-lg p-2">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                      </div>
-                    </div>
-                  )}
-                  <div ref={chatEndRef} />
-                </div>
-              )}
-            </div>
-
-            {/* Chat Input */}
-            <div className="flex gap-2">
-              <Textarea
-                value={chatMessage}
-                onChange={(e) => setChatMessage(e.target.value)}
-                onKeyDown={handleChatKeyDown}
-                placeholder={
-                  llmStatusQuery.data?.available
-                    ? "Ask about items, e.g., 'Show items with product code FG-100'"
-                    : "LLM offline - start Ollama to enable chat"
-                }
-                disabled={!llmStatusQuery.data?.available || isTyping}
-                className="resize-none text-sm"
-                rows={2}
-              />
-              <Button
-                onClick={() => sendChatMessage(chatMessage)}
-                disabled={
-                  !chatMessage.trim() ||
-                  !llmStatusQuery.data?.available ||
-                  isTyping
-                }
-                className="px-4"
-              >
-                {isTyping ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Send className="w-4 h-4" />
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        )}
-      </Card>
     </div>
   );
 }

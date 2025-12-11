@@ -12,7 +12,7 @@ Key features:
 """
 
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Optional
 
 import httpx
@@ -118,7 +118,7 @@ class RestEngine:
             filter=spec.filter
         )
         
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         # Fetch with retry logic
         response = await self._fetch_with_retry(url)
@@ -131,7 +131,7 @@ class RestEngine:
         if max_records and len(records) > max_records:
             records = records[:max_records]
         
-        elapsed_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+        elapsed_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
         
         logger.info(
             "IDO fetched",
@@ -163,7 +163,7 @@ class RestEngine:
             # data = {"SLJobs": [...], "SLItems": [...]}
         """
         logger.info(f"Starting parallel fetch of {len(specs)} IDOs")
-        start_time = datetime.utcnow()
+        start_time = datetime.now(timezone.utc)
         
         # Create fetch tasks
         tasks = [self._fetch_with_semaphore(spec) for spec in specs]
@@ -180,7 +180,7 @@ class RestEngine:
             else:
                 data[spec.name] = result
         
-        elapsed_ms = int((datetime.utcnow() - start_time).total_seconds() * 1000)
+        elapsed_ms = int((datetime.now(timezone.utc) - start_time).total_seconds() * 1000)
         total_records = sum(len(v) for v in data.values())
         
         logger.info(

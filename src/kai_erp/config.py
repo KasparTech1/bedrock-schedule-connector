@@ -26,17 +26,23 @@ class SyteLineConfig(BaseSettings):
     
     model_config = SettingsConfigDict(env_prefix="SL10_")
     
+    # NOTE: These default to empty to allow the app to boot without SyteLine configured.
+    # The API will return 503 for data endpoints until credentials are provided.
     base_url: str = Field(
+        default="",
         description="SyteLine 10 CloudSuite base URL",
         examples=["https://xxx.erpsl.inforcloudsuite.com"]
     )
     config_name: str = Field(
+        default="",
         description="SyteLine configuration name (e.g., XXX_TST or XXX_PRD)"
     )
     username: str = Field(
+        default="",
         description="API username for authentication"
     )
     password: SecretStr = Field(
+        default=SecretStr(""),
         description="API password"
     )
     
@@ -95,11 +101,17 @@ class ServerConfig(BaseSettings):
     log_level: str = Field(default="INFO")
     environment: Environment = Field(default=Environment.DEVELOPMENT)
     
-    # CORS
+    # CORS - configurable via CORS_ORIGINS env var (comma-separated)
+    # SECURITY: In production, set explicit origins instead of ["*"]
     cors_origins: list[str] = Field(
-        default=["*"],
-        description="Allowed CORS origins"
+        default_factory=lambda: ["http://localhost:5173", "http://localhost:3000"],
+        description="Allowed CORS origins (set via CORS_ORIGINS env var, comma-separated)"
     )
+    
+    @property
+    def is_production(self) -> bool:
+        """Check if running in production environment."""
+        return self.environment == Environment.PRODUCTION
 
 
 class Config(BaseSettings):

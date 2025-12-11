@@ -8,12 +8,36 @@ import {
   Wrench,
   Code2,
   FileJson,
+  Key,
+  ExternalLink,
+  Copy,
+  Check,
 } from "lucide-react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { api } from "@/lib/api";
+
+// API endpoint mapping for connectors
+const API_ENDPOINTS: Record<string, { endpoint: string; scope: string; description: string }> = {
+  "customer-search": {
+    endpoint: "/api/v1/customers",
+    scope: "customers:read",
+    description: "Search and retrieve customer information",
+  },
+  "order-availability": {
+    endpoint: "/api/v1/orders/availability",
+    scope: "orders:read",
+    description: "Get order availability with allocation analysis",
+  },
+  "bedrock-ops-scheduler": {
+    endpoint: "/api/v1/jobs",
+    scope: "jobs:read",
+    description: "Get production jobs and schedule data",
+  },
+};
 
 interface ConnectorDetailProps {
   id: string;
@@ -87,8 +111,9 @@ export function ConnectorDetail({ id }: ConnectorDetailProps) {
 
       <Separator />
 
-      {/* Main Content Grid */}
+      {/* Main Content Grid - 2x2 layout */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Row 1: Data Sources | MCP Tools */}
         {/* IDO Data Sources */}
         <Card>
           <CardHeader>
@@ -182,42 +207,7 @@ export function ConnectorDetail({ id }: ConnectorDetailProps) {
           </CardContent>
         </Card>
 
-        {/* Join Configuration */}
-        {(connector.joins.length > 0 || connector.join_sql) && (
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <GitBranch className="w-5 h-5 text-primary" />
-                Join Configuration
-              </CardTitle>
-              <CardDescription>
-                How data sources are combined
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {connector.joins.map((join, i) => (
-                <div key={i} className="text-sm">
-                  <span className="font-mono">{join.left_ido}</span>
-                  <span className="text-muted-foreground"> {join.type} JOIN </span>
-                  <span className="font-mono">{join.right_ido}</span>
-                  <span className="text-muted-foreground"> ON </span>
-                  <span className="font-mono">
-                    {join.left_key} = {join.right_key}
-                  </span>
-                </div>
-              ))}
-              {connector.join_sql && (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Custom SQL:</div>
-                  <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto font-mono">
-                    {connector.join_sql}
-                  </pre>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        )}
-
+        {/* Row 2: Output Schema | API Access */}
         {/* Output Schema */}
         <Card>
           <CardHeader>
@@ -256,7 +246,46 @@ export function ConnectorDetail({ id }: ConnectorDetailProps) {
             </div>
           </CardContent>
         </Card>
+
+        {/* API Access Card - in grid */}
+        <APIAccessCard connectorId={id} />
       </div>
+
+      {/* Join Configuration - Full width when present */}
+      {(connector.joins.length > 0 || connector.join_sql) && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <GitBranch className="w-5 h-5 text-primary" />
+              Join Configuration
+            </CardTitle>
+            <CardDescription>
+              How data sources are combined
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {connector.joins.map((join, i) => (
+              <div key={i} className="text-sm">
+                <span className="font-mono">{join.left_ido}</span>
+                <span className="text-muted-foreground"> {join.type} JOIN </span>
+                <span className="font-mono">{join.right_ido}</span>
+                <span className="text-muted-foreground"> ON </span>
+                <span className="font-mono">
+                  {join.left_key} = {join.right_key}
+                </span>
+              </div>
+            ))}
+            {connector.join_sql && (
+              <div className="space-y-2">
+                <div className="text-sm font-medium">Custom SQL:</div>
+                <pre className="bg-muted p-3 rounded-lg text-xs overflow-x-auto font-mono">
+                  {connector.join_sql}
+                </pre>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {/* Performance Info */}
       <Card>
@@ -284,5 +313,114 @@ export function ConnectorDetail({ id }: ConnectorDetailProps) {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+// API Access Card Component
+function APIAccessCard({ connectorId }: { connectorId: string }) {
+  const [copied, setCopied] = useState(false);
+  const apiConfig = API_ENDPOINTS[connectorId];
+  const baseUrl = window.location.origin;
+
+  // If no API config for this connector, don't show the card
+  if (!apiConfig) {
+    return null;
+  }
+
+  const fullEndpoint = `${baseUrl}${apiConfig.endpoint}`;
+  const curlExample = `curl -X GET "${fullEndpoint}" \\
+  -H "X-API-Key: your_api_key" \\
+  -H "Accept: application/json"`;
+
+  const handleCopy = () => {
+    navigator.clipboard.writeText(curlExample);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <Card className="border-blue-200 dark:border-blue-800 bg-gradient-to-br from-blue-50/50 to-transparent dark:from-blue-900/20">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Key className="w-5 h-5 text-blue-500" />
+          API Access
+        </CardTitle>
+        <CardDescription>
+          Access this connector's data via REST API
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {/* Endpoint Info */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div>
+            <label className="text-xs text-muted-foreground uppercase tracking-wide">
+              Endpoint
+            </label>
+            <div className="flex items-center gap-2 mt-1">
+              <Badge variant="outline" className="bg-green-500/10 text-green-700 border-green-300">
+                GET
+              </Badge>
+              <code className="text-sm font-mono bg-muted px-2 py-1 rounded">
+                {apiConfig.endpoint}
+              </code>
+            </div>
+          </div>
+          <div>
+            <label className="text-xs text-muted-foreground uppercase tracking-wide">
+              Required Scope
+            </label>
+            <div className="mt-1">
+              <Badge variant="secondary">{apiConfig.scope}</Badge>
+            </div>
+          </div>
+        </div>
+
+        {/* Quick Example */}
+        <div>
+          <label className="text-xs text-muted-foreground uppercase tracking-wide">
+            Quick Example
+          </label>
+          <div className="relative mt-1 group">
+            <pre className="bg-slate-900 text-slate-100 p-3 rounded-lg text-xs overflow-x-auto">
+              <code>{curlExample}</code>
+            </pre>
+            <Button
+              variant="ghost"
+              size="sm"
+              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-slate-800 hover:bg-slate-700 text-white"
+              onClick={handleCopy}
+            >
+              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
+            </Button>
+          </div>
+        </div>
+
+        {/* Authentication Note */}
+        <div className="flex items-start gap-2 p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg">
+          <Key className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
+          <div className="text-sm">
+            <span className="font-medium text-amber-800 dark:text-amber-200">
+              Authentication Required
+            </span>
+            <p className="text-amber-700 dark:text-amber-300 text-xs mt-0.5">
+              All API requests require an API key via the <code className="bg-amber-100 dark:bg-amber-800 px-1 rounded">X-API-Key</code> header.
+            </p>
+          </div>
+        </div>
+
+        {/* Link to Full Docs */}
+        <div className="flex items-center justify-between pt-2">
+          <p className="text-sm text-muted-foreground">
+            {apiConfig.description}
+          </p>
+          <Link href="/admin/api">
+            <Button variant="outline" size="sm" className="gap-2">
+              <ExternalLink className="w-4 h-4" />
+              Full API Docs
+            </Button>
+          </Link>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

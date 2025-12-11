@@ -1,0 +1,35 @@
+# Prometheus Configuration for Staging Environment
+# ================================================
+# Scrapes metrics from KAI ERP Connector API
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    environment: staging
+    service: kai-erp-connector
+
+scrape_configs:
+  # KAI ERP Connector API
+  - job_name: 'kai-erp-api'
+    static_configs:
+      - targets: ['kai-erp-connector:8100']
+    metrics_path: /metrics
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+# Alerting rules (optional)
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093

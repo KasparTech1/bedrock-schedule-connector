@@ -11,6 +11,7 @@ from kai_erp.mcp.tools import (
     OPEN_ORDERS_TOOL,
     CUSTOMER_SEARCH_TOOL,
     INVENTORY_STATUS_TOOL,
+    ORDER_AVAILABILITY_TOOL,
     get_tool_by_name,
     get_tool_schemas,
 )
@@ -21,13 +22,14 @@ class TestToolDefinitions:
     
     def test_all_tools_defined(self):
         """All expected tools should be defined."""
-        assert len(ALL_TOOLS) == 4
+        assert len(ALL_TOOLS) == 5
         
         tool_names = [t.name for t in ALL_TOOLS]
         assert "get_production_schedule" in tool_names
         assert "get_open_orders" in tool_names
         assert "search_customers" in tool_names
         assert "get_inventory_status" in tool_names
+        assert "get_order_availability" in tool_names
     
     def test_production_schedule_tool(self):
         """Test production schedule tool definition."""
@@ -76,6 +78,11 @@ class TestToolDefinitions:
         assert "warehouse" in param_names
         assert "low_stock_only" in param_names
 
+    def test_order_availability_tool(self):
+        """Test order availability tool definition."""
+        tool = ORDER_AVAILABILITY_TOOL
+        assert tool.name == "get_order_availability"
+
 
 class TestToolLookup:
     """Tests for tool lookup functions."""
@@ -101,7 +108,7 @@ class TestToolSchemas:
         """Test schema format matches MCP spec."""
         schemas = get_tool_schemas()
         
-        assert len(schemas) == 4
+        assert len(schemas) == 5
         
         for schema in schemas:
             # Required fields

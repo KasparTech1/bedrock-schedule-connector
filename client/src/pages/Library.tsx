@@ -16,14 +16,19 @@ export function Library() {
     queryFn: () => api.connectors.list(true),
   });
 
-  // Get unique categories from connectors
+  // Filter out Demo connectors (they go to Sandbox page)
+  const nonDemoConnectors = connectors.filter(
+    (c) => c.category !== "Demo" && !c.tags?.includes("demo")
+  );
+
+  // Get unique categories from non-demo connectors
   const categories = [
     "All",
-    ...Array.from(new Set(connectors.map((c) => c.category))),
+    ...Array.from(new Set(nonDemoConnectors.map((c) => c.category))),
   ];
 
   // Filter connectors
-  const filteredConnectors = connectors
+  const filteredConnectors = nonDemoConnectors
     .filter((connector) => {
       const matchesSearch =
         connector.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -35,10 +40,10 @@ export function Library() {
         selectedCategory === "All" || connector.category === selectedCategory;
       return matchesSearch && matchesCategory;
     })
-    // Sort: LIVE/Demo connectors first, then alphabetically
+    // Sort: LIVE connectors first, then alphabetically
     .sort((a, b) => {
-      const aIsLive = a.category === "Demo" || a.tags?.includes("live");
-      const bIsLive = b.category === "Demo" || b.tags?.includes("live");
+      const aIsLive = a.tags?.includes("live");
+      const bIsLive = b.tags?.includes("live");
       if (aIsLive && !bIsLive) return -1;
       if (!aIsLive && bIsLive) return 1;
       return a.name.localeCompare(b.name);

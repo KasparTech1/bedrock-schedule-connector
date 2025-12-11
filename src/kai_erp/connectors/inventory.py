@@ -13,6 +13,7 @@ Source IDOs:
 from typing import Any, Optional
 
 from kai_erp.connectors.base import BaseConnector
+from kai_erp.core.security import ODataSanitizer, validate_filter_value
 from kai_erp.core.types import IDOSpec, RestQuerySpec
 from kai_erp.models.inventory import InventoryItem, WarehouseStock
 
@@ -36,15 +37,20 @@ class InventoryStatus(BaseConnector[InventoryItem]):
     def get_rest_spec(self, filters: Optional[dict[str, Any]] = None) -> RestQuerySpec:
         """Define REST API access pattern for inventory status."""
         
-        # Build item filter
+        # Build item filter (with sanitization)
         item_filter = None
         if filters and filters.get("item"):
-            item_filter = f"Item='{filters['item']}'"
+            safe_item = validate_filter_value(filters["item"])
+            item_filter = ODataSanitizer.build_equals_filter("Item", safe_item)
         
-        # Build warehouse filter
+        # Build warehouse filter (with sanitization)
         whse_filter = None
         if filters and filters.get("warehouse"):
-            whse_filter = f"Whse='{filters['warehouse']}'"
+            safe_whse = validate_filter_value(filters["warehouse"])
+            whse_filter = ODataSanitizer.build_equals_filter("Whse", safe_whse)
+        
+        # Build parameterized join SQL
+        join_sql, join_params = self._build_join_sql(filters)
         
         return RestQuerySpec(
             idos=[
@@ -65,11 +71,19 @@ class InventoryStatus(BaseConnector[InventoryItem]):
                     filter=whse_filter
                 )
             ],
-            join_sql=self._build_join_sql(filters)
+            join_sql=join_sql,
+            join_params=join_params
         )
     
-    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> str:
-        """Build the DuckDB join SQL."""
+    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> tuple[str, list[Any]]:
+        """
+        Build the DuckDB join SQL with parameterized queries.
+        
+        Returns:
+            Tuple of (sql_query, parameters) for safe execution.
+        """
+        params: list[Any] = []
+        
         sql = """
             SELECT 
                 i.Item,
@@ -97,9 +111,11 @@ class InventoryStatus(BaseConnector[InventoryItem]):
         where_parts = []
         if filters:
             if filters.get("item"):
-                where_parts.append(f"i.Item = '{filters['item']}'")
+                where_parts.append("i.Item = ?")
+                params.append(filters["item"])
             if filters.get("warehouse"):
-                where_parts.append(f"iw.Whse = '{filters['warehouse']}'")
+                where_parts.append("iw.Whse = ?")
+                params.append(filters["warehouse"])
             if filters.get("low_stock_only"):
                 where_parts.append("""
                     i.ReorderPoint IS NOT NULL 
@@ -111,7 +127,7 @@ class InventoryStatus(BaseConnector[InventoryItem]):
         
         sql += " ORDER BY i.Item, iw.Whse"
         
-        return sql
+        return sql, params
     
     def get_lake_query(self, filters: Optional[dict[str, Any]] = None) -> str:
         """Define Data Lake SQL query."""

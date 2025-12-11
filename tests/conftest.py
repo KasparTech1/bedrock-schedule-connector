@@ -6,7 +6,7 @@ Pytest fixtures used across all test modules.
 These provide mock data and test infrastructure.
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Any
 from unittest.mock import AsyncMock, MagicMock
 
@@ -248,7 +248,7 @@ def valid_token() -> TokenInfo:
     """Provide a valid (not expired) token."""
     return TokenInfo(
         access_token="valid_test_token_12345",
-        expires_at=datetime.utcnow() + timedelta(hours=1),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1),
         token_type="Bearer"
     )
 
@@ -258,7 +258,7 @@ def expired_token() -> TokenInfo:
     """Provide an expired token."""
     return TokenInfo(
         access_token="expired_test_token_12345",
-        expires_at=datetime.utcnow() - timedelta(hours=1),
+        expires_at=datetime.now(timezone.utc) - timedelta(hours=1),
         token_type="Bearer"
     )
 
@@ -268,7 +268,7 @@ def expiring_soon_token() -> TokenInfo:
     """Provide a token expiring in 2 minutes."""
     return TokenInfo(
         access_token="expiring_soon_token_12345",
-        expires_at=datetime.utcnow() + timedelta(minutes=2),
+        expires_at=datetime.now(timezone.utc) + timedelta(minutes=2),
         token_type="Bearer"
     )
 

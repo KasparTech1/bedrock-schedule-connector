@@ -1,0 +1,126 @@
+# Global Shop ERP Connector
+# Legacy connector for Circle Brands subsidiary during ERP migration
+
+id: global-shop-erp
+name: Legacy Global Shop
+description: >
+  Legacy ERP connector for Circle Brands subsidiary. Provides access to
+  Pervasive SQL database via secure bridge API for product lines, items,
+  customers, inventory, and orders during migration to Syteline 10.
+version: "1.0.0"
+category: Legacy
+icon: factory
+tags:
+  - LEGACY
+  - legacy_global_shop
+  - global-shop
+  - pervasive
+  - circle-brands
+  - bridge-api
+status: published
+
+# Legacy connectors use external bridge API, not SyteLine IDOs
+# These represent the confirmed/tested tables available via the bridge
+idos:
+  - name: PRODLINE_MRE
+    alias: product_lines
+    description: Product line master data from Global Shop
+    properties:
+      - name: PRODLINE
+        alias: product_line_code
+        type: string
+        filterable: true
+        primary_key: true
+        description: Unique product line identifier
+      - name: DESCRIP
+        alias: description
+        type: string
+        description: Product line description
+      - name: COST_CENTER
+        alias: cost_center
+        type: string
+        filterable: true
+        description: Associated cost center
+      - name: ACCOUNT
+        alias: account
+        type: string
+        description: GL account code
+
+  - name: V_SALESPERSONS
+    alias: salespersons
+    description: Sales personnel view from Global Shop
+    properties:
+      - name: SALESSION
+        alias: salesperson_id
+        type: string
+        filterable: true
+        primary_key: true
+        description: Salesperson identifier
+      - name: NAME
+        alias: name
+        type: string
+        description: Salesperson name
+      - name: COMMISSION
+        alias: commission
+        type: number
+        description: Commission rate
+
+output_fields:
+  - name: product_line_code
+    type: string
+    description: Product line identifier
+  - name: description
+    type: string
+    description: Product line description
+  - name: cost_center
+    type: string
+    description: Associated cost center
+  - name: account
+    type: string
+    description: GL account code
+  - name: salesperson_id
+    type: string
+    description: Salesperson identifier
+  - name: name
+    type: string
+    description: Salesperson name
+
+tools:
+  - name: get_product_lines
+    description: >
+      Get all product lines from Global Shop. Returns product line codes,
+      descriptions, cost centers, and account mappings.
+    parameters:
+      - name: product_line
+        type: string
+        description: Filter by specific product line code
+        required: false
+      - name: limit
+        type: number
+        description: Maximum records to return (default 500)
+        default: "500"
+
+  - name: get_salespersons
+    description: >
+      Get sales personnel from Global Shop. Returns salesperson IDs,
+      names, and commission information.
+    parameters:
+      - name: salesperson
+        type: string
+        description: Filter by salesperson ID
+        required: false
+      - name: limit
+        type: number
+        description: Maximum records to return (default 500)
+        default: "500"
+
+estimated_volume: medium
+freshness_requirement: near-real-time
+
+# Legacy connector-specific metadata
+bridge_endpoint: https://bridge-api.kaiville.io/query
+subsidiary: Circle Brands
+legacy_system: Global Shop (Pervasive SQL)
+target_system: Syteline 10
+migration_timeline: 6-10 months
+sunset_status: active-transitional

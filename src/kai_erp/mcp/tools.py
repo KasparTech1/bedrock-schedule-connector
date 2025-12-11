@@ -178,12 +178,76 @@ NOTE: For items being manufactured, use get_production_schedule.
     ]
 )
 
+ORDER_AVAILABILITY_TOOL = Tool(
+    name="get_order_availability",
+    description="""
+Get customer order availability with inventory allocation analysis.
+
+Shows open customer orders with how inventory is allocated from different
+production stages: On Hand → Paint → Blast → Weld/Fab. Calculates coverage
+and estimated completion dates based on business day calendar.
+
+USE THIS WHEN:
+• User asks about order availability or coverage
+• User asks what orders can be shipped
+• User asks about order shortages
+• User asks when orders will be ready
+• User asks about production allocation to orders
+• User needs to see what's covered vs uncovered
+• User asks about order fulfillment status
+
+DON'T USE FOR:
+• Simple order list → use get_open_orders
+• Inventory levels only → use get_inventory_status
+• Production schedule → use get_production_schedule
+
+ALLOCATION PRIORITY (by due date):
+1. On Hand inventory (immediate availability)
+2. Paint queue (nearly complete production)
+3. Blast queue (in process)
+4. Released Weld/Fab (early production)
+
+ESTIMATED COMPLETION DATES:
+• Weld/Fab: 4 business days from release
+• Blast: 7 business days from release
+• Paint/Assembly: 10 business days from release
+""",
+    parameters=[
+        ToolParameter(
+            name="customer",
+            type="string",
+            required=False,
+            description="Customer name filter (partial match). Omit for all customers."
+        ),
+        ToolParameter(
+            name="item",
+            type="string",
+            required=False,
+            description="Item number filter (partial match). Omit for all items."
+        ),
+        ToolParameter(
+            name="due_within_days",
+            type="integer",
+            required=False,
+            description="Only orders due within N days from today."
+        ),
+        ToolParameter(
+            name="shortage_only",
+            type="boolean",
+            required=False,
+            default=False,
+            description="Only show orders with shortages (not fully covered)."
+        )
+    ]
+)
+
 # All available tools
 ALL_TOOLS = [
     PRODUCTION_SCHEDULE_TOOL,
     OPEN_ORDERS_TOOL,
     CUSTOMER_SEARCH_TOOL,
     INVENTORY_STATUS_TOOL,
+    ORDER_AVAILABILITY_TOOL,
 ]
 
 

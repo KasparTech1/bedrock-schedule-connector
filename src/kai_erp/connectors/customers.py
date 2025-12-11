@@ -12,6 +12,7 @@ Source IDOs:
 from typing import Any, Optional
 
 from kai_erp.connectors.base import BaseConnector
+from kai_erp.core.security import ODataSanitizer, validate_filter_value
 from kai_erp.core.types import IDOSpec, RestQuerySpec
 from kai_erp.models.customers import Customer, CustomerAddress
 
@@ -33,7 +34,7 @@ class CustomerSearch(BaseConnector[Customer]):
     def get_rest_spec(self, filters: Optional[dict[str, Any]] = None) -> RestQuerySpec:
         """Define REST API access pattern for customer search."""
         
-        # Build customer filter
+        # Build customer filter for OData API call (with sanitization)
         customer_filter_parts = []
         
         if filters:
@@ -41,14 +42,20 @@ class CustomerSearch(BaseConnector[Customer]):
                 customer_filter_parts.append("Stat='A'")
             
             if filters.get("query"):
-                query = filters["query"]
-                # Search multiple fields
-                customer_filter_parts.append(
-                    f"(Name like '%{query}%' or CustNum like '%{query}%' "
-                    f"or City like '%{query}%' or State like '%{query}%')"
-                )
+                safe_query = validate_filter_value(filters["query"])
+                # Search multiple fields - OData API filter with safe values
+                search_conditions = [
+                    ODataSanitizer.build_like_filter("Name", safe_query, "contains"),
+                    ODataSanitizer.build_like_filter("CustNum", safe_query, "contains"),
+                    ODataSanitizer.build_like_filter("City", safe_query, "contains"),
+                    ODataSanitizer.build_like_filter("State", safe_query, "contains"),
+                ]
+                customer_filter_parts.append(ODataSanitizer.build_or_filter(search_conditions))
         
-        customer_filter = " and ".join(customer_filter_parts) if customer_filter_parts else None
+        customer_filter = ODataSanitizer.build_and_filter(customer_filter_parts) if customer_filter_parts else None
+        
+        # Build parameterized join SQL
+        join_sql, join_params = self._build_join_sql(filters)
         
         return RestQuerySpec(
             idos=[
@@ -69,11 +76,19 @@ class CustomerSearch(BaseConnector[Customer]):
                     ]
                 )
             ],
-            join_sql=self._build_join_sql(filters)
+            join_sql=join_sql,
+            join_params=join_params
         )
     
-    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> str:
-        """Build the DuckDB join SQL."""
+    def _build_join_sql(self, filters: Optional[dict[str, Any]] = None) -> tuple[str, list[Any]]:
+        """
+        Build the DuckDB join SQL with parameterized queries.
+        
+        Returns:
+            Tuple of (sql_query, parameters) for safe execution.
+        """
+        params: list[Any] = []
+        
         sql = """
             SELECT 
                 c.CustNum as CustomerNum,
@@ -109,18 +124,19 @@ class CustomerSearch(BaseConnector[Customer]):
             if filters.get("active_only", True):
                 where_parts.append("c.Stat = 'A'")
             if filters.get("query"):
-                query = filters["query"]
+                # Use parameterized LIKE patterns to prevent SQL injection
+                search_pattern = f"%{filters['query']}%"
                 where_parts.append(
-                    f"(c.Name LIKE '%{query}%' OR c.CustNum LIKE '%{query}%' "
-                    f"OR c.City LIKE '%{query}%' OR c.State LIKE '%{query}%')"
+                    "(c.Name LIKE ? OR c.CustNum LIKE ? OR c.City LIKE ? OR c.State LIKE ?)"
                 )
+                params.extend([search_pattern, search_pattern, search_pattern, search_pattern])
         
         if where_parts:
             sql += " WHERE " + " AND ".join(where_parts)
         
         sql += " ORDER BY c.Name"
         
-        return sql
+        return sql, params
     
     def get_lake_query(self, filters: Optional[dict[str, Any]] = None) -> str:
         """Define Data Lake SQL query."""

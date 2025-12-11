@@ -63,6 +63,7 @@ python -m kai_erp.mcp.server
 ```
 kai-erp-connector/
 ├── src/kai_erp/
+│   ├── adapters/       # Upstream ERP adapters (SyteLine10, legacy_*)
 │   ├── core/           # Layer 1: Data source engines
 │   ├── connectors/     # Layer 2: Business logic
 │   ├── mcp/            # Layer 3: AI interface

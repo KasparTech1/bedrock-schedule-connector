@@ -1575,6 +1575,12 @@ kai-erp-connector/
 │   ├── __init__.py
 │   ├── config.py
 │   │
+│   ├── adapters/                  # Upstream adapters (SyteLine10, legacy_*)
+│   │   ├── __init__.py
+│   │   ├── syteline10_cloud/
+│   │   ├── legacy_global_shop/
+│   │   └── legacy_syteline8/
+│   │
 │   ├── core/                      # Layer 1: Data Sources
 │   │   ├── __init__.py
 │   │   ├── auth.py               # Token management
@@ -1719,4 +1725,6 @@ REST_HARD_MAX=5000
 *KAI ERP Connector - Making ERP Data AI-Ready*
 
 *Kaspar Companies IT Operations*
+
+
 
