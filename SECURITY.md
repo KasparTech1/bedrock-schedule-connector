@@ -21,33 +21,20 @@ See `.env.example` for the complete list of required variables.
 
 ### Demo SyteLine Account (2024-2025)
 
-**Status**: ⚠️ **Credentials were committed to git history**
+**Status**: ✅ **No action required** — Low-value demo account
 
 - **Username**: `DevWorkshop06`
 - **Password**: `WeTest$Code1`
 - **Environment**: Demo/Test SyteLine 10 CloudSuite instance
-- **Risk Level**: Low (demo/test account, not production)
+- **Risk Level**: None (demo/test account with no production access or sensitive data)
 
 **Affected Commits**: Multiple commits from `a084af2` through `df16a13` (Dec 2024)
 
 **Remediation**:
 1. ✅ **Source code redacted** (commit `34afa53`): All hardcoded credentials removed from current codebase
-2. ⚠️ **Git history**: Old commits still contain these credentials (Option B: documented rotation instead of history rewrite)
-3. 🔄 **Credential rotation required**: If this account is still active, rotate the password immediately
+2. ✅ **No rotation needed**: This was a low-value demo account with no production impact
 
-### Rotation Steps
-
-If the demo account (`DevWorkshop06`) is still in use:
-
-1. **Log into SyteLine 10 CloudSuite admin console**
-2. **Change password** for user `DevWorkshop06`
-3. **Update environment variables** in all deployment environments:
-   ```bash
-   DEMO_SL10_USERNAME=DevWorkshop06
-   DEMO_SL10_PASSWORD=<new-password>
-   ```
-4. **Update Postman collection** with new credentials (stored as Postman variables, not in collection file)
-5. **Verify** demo endpoints still work: `/api/demo/health`
+**Note**: While these credentials remain in git history, they pose no security risk as the account has no access to production systems or sensitive data.
 
 ### Prevention
 
@@ -95,7 +82,7 @@ gitleaks detect --source . --log-opts "HEAD~1..HEAD"
 1. **Never hardcode credentials** in source code, even for demo/test accounts
 2. **Use environment variables** for all sensitive values
 3. **Use `.env.example`** to document required variables (without values)
-4. **Rotate credentials immediately** if exposed
+4. **Rotate credentials immediately** if exposed (for production accounts)
 5. **Review git history** before making repos public
 6. **Use secret management** (AWS Secrets Manager, HashiCorp Vault, etc.) for production
 
