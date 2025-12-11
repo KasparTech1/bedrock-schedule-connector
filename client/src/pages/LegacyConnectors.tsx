@@ -68,8 +68,29 @@ export function LegacyConnectors() {
 
     try {
       const res = await fetch("/api/legacy/global-shop/health");
+      
+      // Check if response is OK before parsing JSON
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          // If not JSON, use the text or status
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
+
+      // Check content type before parsing
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(`Expected JSON but got ${contentType || "unknown"}. Response: ${text.substring(0, 100)}`);
+      }
+
       const data = (await res.json()) as GlobalShopHealthResponse;
-      if (!res.ok) throw new Error(data?.message || "Health check failed");
       setHealth(data);
     } catch (e) {
       setHealth(null);
@@ -93,9 +114,29 @@ export function LegacyConnectors() {
       params.set("limit", limit);
 
       const res = await fetch(`/api/legacy/global-shop/product-lines?${params.toString()}`);
-      const data = (await res.json()) as ProductLineResponse;
-      if (!res.ok) throw new Error((data as any)?.detail || "Product line query failed");
+      
+      // Check if response is OK before parsing JSON
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          // If not JSON, use the text or status
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
 
+      // Check content type before parsing
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(`Expected JSON but got ${contentType || "unknown"}. Response: ${text.substring(0, 100)}`);
+      }
+
+      const data = (await res.json()) as ProductLineResponse;
       setProductLines(data);
     } catch (e) {
       setProductLines(null);
@@ -115,9 +156,29 @@ export function LegacyConnectors() {
       params.set("limit", limit);
 
       const res = await fetch(`/api/legacy/global-shop/salespersons?${params.toString()}`);
-      const data = (await res.json()) as GlobalShopQueryResponse;
-      if (!res.ok) throw new Error((data as any)?.detail || "Salesperson query failed");
+      
+      // Check if response is OK before parsing JSON
+      if (!res.ok) {
+        const text = await res.text();
+        let errorMessage = `HTTP ${res.status}: ${res.statusText}`;
+        try {
+          const errorData = JSON.parse(text);
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch {
+          // If not JSON, use the text or status
+          errorMessage = text || errorMessage;
+        }
+        throw new Error(errorMessage);
+      }
 
+      // Check content type before parsing
+      const contentType = res.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await res.text();
+        throw new Error(`Expected JSON but got ${contentType || "unknown"}. Response: ${text.substring(0, 100)}`);
+      }
+
+      const data = (await res.json()) as GlobalShopQueryResponse;
       setSalespersons(data);
     } catch (e) {
       setSalespersons(null);
