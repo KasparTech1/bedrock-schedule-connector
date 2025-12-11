@@ -75,8 +75,8 @@ const DEFAULT_SETTINGS: AppSettings = {
     enabled: true,
     baseUrl: "https://Csi10g.erpsl.inforcloudsuite.com",
     configName: "DUU6QAFE74D2YDYW_TST_DALS",
-    username: "DevWorkshop06",
-    password: "WeTest$Code1",
+    username: "",
+    password: "",
   },
   registry: {
     configDirectory: "src/kai_erp/connectors_config",

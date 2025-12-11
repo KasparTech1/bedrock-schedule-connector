@@ -10,13 +10,25 @@ from kai_erp.syteline import SyteLineClient, SyteLineConfig
 
 router = APIRouter(prefix="/api/demo", tags=["Demo SyteLine"])
 
-# Demo connection config - using credentials from Kaspar DW Postman collection
-DEMO_CONFIG = SyteLineConfig(
-    base_url="https://Csi10g.erpsl.inforcloudsuite.com",
-    config_name="DUU6QAFE74D2YDYW_TST_DALS",
-    username=os.getenv("DEMO_SL10_USERNAME", "DevWorkshop06"),
-    password=os.getenv("DEMO_SL10_PASSWORD", "WeTest$Code1"),
-)
+def _get_demo_config() -> SyteLineConfig:
+    """Build demo SyteLine config from environment variables.
+
+    Intentionally does not embed any credentials in source control.
+    """
+    username = os.getenv("DEMO_SL10_USERNAME")
+    password = os.getenv("DEMO_SL10_PASSWORD")
+    if not username or not password:
+        raise HTTPException(
+            status_code=503,
+            detail="Demo SyteLine not configured. Set DEMO_SL10_USERNAME and DEMO_SL10_PASSWORD.",
+        )
+
+    return SyteLineConfig(
+        base_url=os.getenv("DEMO_SL10_BASE_URL", "https://Csi10g.erpsl.inforcloudsuite.com"),
+        config_name=os.getenv("DEMO_SL10_CONFIG_NAME", "DUU6QAFE74D2YDYW_TST_DALS"),
+        username=username,
+        password=password,
+    )
 
 
 class QueryRequest(BaseModel):
@@ -32,13 +44,14 @@ class QueryRequest(BaseModel):
 @router.get("/health")
 async def demo_health_check() -> dict[str, Any]:
     """Check if the demo SyteLine connection is working."""
-    async with SyteLineClient(DEMO_CONFIG) as client:
+    config = _get_demo_config()
+    async with SyteLineClient(config) as client:
         healthy = await client.health_check()
         
     return {
         "status": "healthy" if healthy else "unhealthy",
-        "base_url": DEMO_CONFIG.base_url,
-        "config_name": DEMO_CONFIG.config_name,
+        "base_url": config.base_url,
+        "config_name": config.config_name,
     }
 
 
@@ -71,7 +84,8 @@ async def get_demo_items(
     ]
     
     try:
-        async with SyteLineClient(DEMO_CONFIG) as client:
+        config = _get_demo_config()
+        async with SyteLineClient(config) as client:
             records = await client.query_ido(
                 ido_name="SLItems",
                 properties=properties,
@@ -81,7 +95,7 @@ async def get_demo_items(
         
         return {
             "source": "syteline-demo",
-            "base_url": DEMO_CONFIG.base_url,
+            "base_url": config.base_url,
             "ido": "SLItems",
             "records": records,
             "count": len(records),
@@ -95,7 +109,8 @@ async def query_demo_ido(request: QueryRequest) -> dict[str, Any]:
     """Query any IDO from the demo SyteLine environment."""
     
     try:
-        async with SyteLineClient(DEMO_CONFIG) as client:
+        config = _get_demo_config()
+        async with SyteLineClient(config) as client:
             records = await client.query_ido(
                 ido_name=request.ido_name,
                 properties=request.properties,
@@ -106,7 +121,7 @@ async def query_demo_ido(request: QueryRequest) -> dict[str, Any]:
         
         return {
             "source": "syteline-demo",
-            "base_url": DEMO_CONFIG.base_url,
+            "base_url": config.base_url,
             "ido": request.ido_name,
             "records": records,
             "count": len(records),
