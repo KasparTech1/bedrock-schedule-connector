@@ -72,13 +72,16 @@ kai-erp-connector/
 ├── tests/
 ├── docs/
 │   ├── BLUEPRINT.md    # Full technical specification
-│   └── agent task list # Multi-agent execution plan
+│   ├── DEPLOYMENT.md   # Deployment guide
+│   ├── LEGACY_ERP_CONNECTORS.md  # Legacy system integration
+│   ├── MONGOOSE_REST_API_CREDENTIALS.md  # SyteLine 10 Cloud credentials
+│   └── ARCHIVE.md      # Archived/historical documentation
 └── pyproject.toml
 ```
 
 ## Development
 
-See `docs/agent task list` for the multi-agent development plan.
+See `docs/BLUEPRINT.md` for the complete technical specification.
 
 ### Running Tests
 
@@ -98,7 +101,10 @@ pytest tests/test_mcp/
 ## Documentation
 
 - [BLUEPRINT.md](docs/BLUEPRINT.md) - Complete technical specification
-- [Agent Task List](docs/agent%20task%20list) - Multi-agent development plan
+- [DEPLOYMENT.md](docs/DEPLOYMENT.md) - Deployment and operations guide
+- [LEGACY_ERP_CONNECTORS.md](docs/LEGACY_ERP_CONNECTORS.md) - Legacy system integration
+- [MONGOOSE_REST_API_CREDENTIALS.md](docs/MONGOOSE_REST_API_CREDENTIALS.md) - SyteLine 10 Cloud credentials
+- [SECURITY.md](SECURITY.md) - Security policy and credential management
 
 ## License
 
