@@ -9,7 +9,6 @@ import { ConnectorBuilder } from "@/pages/admin/ConnectorBuilder";
 import { Connections } from "@/pages/admin/Connections";
 import { Settings } from "@/pages/admin/Settings";
 import { Sandbox } from "@/pages/admin/Sandbox";
-import { DemoTryIt } from "@/pages/DemoTryIt";
 import { BedrockFlowOptimizer } from "@/pages/BedrockFlowOptimizer";
 import { BedrockCustomerSearch } from "@/pages/BedrockCustomerSearch";
 import { BedrockOrderAvailability } from "@/pages/BedrockOrderAvailability";
@@ -41,7 +40,6 @@ function App() {
               <Route path="/connector/:id">
                 {(params) => <ConnectorDetail id={params.id} />}
               </Route>
-              <Route path="/connector/demo-syteline-items/try" component={DemoTryIt} />
               <Route path="/connector/bedrock-ops-scheduler/try" component={BedrockFlowOptimizer} />
               <Route path="/connector/customer-search/try" component={BedrockCustomerSearch} />
               {/* Live Tool Connectors */}

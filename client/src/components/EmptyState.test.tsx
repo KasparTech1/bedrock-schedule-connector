@@ -102,3 +102,4 @@ describe('SearchEmptyState', () => {
     expect(onClear).toHaveBeenCalledTimes(1);
   });
 });
+

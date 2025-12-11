@@ -84,3 +84,4 @@ test.describe('Error Handling', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 });
+

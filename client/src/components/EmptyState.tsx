@@ -139,3 +139,4 @@ export function SearchEmptyState({
 }
 
 export default EmptyState;
+

@@ -215,3 +215,4 @@ class OrderAvailabilitySummary(BaseModel):
         if self.total_qty_remaining <= 0:
             return 100.0
         return min(100.0, (self.total_qty_covered / self.total_qty_remaining) * 100)
+

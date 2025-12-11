@@ -306,3 +306,4 @@ async def get_authenticated_user(
     This allows endpoints to accept both authentication methods.
     """
     return jwt_user
+

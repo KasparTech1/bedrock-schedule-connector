@@ -71,3 +71,4 @@ describe('LoadingTable', () => {
     expect(rows.length).toBe(6);
   });
 });
+

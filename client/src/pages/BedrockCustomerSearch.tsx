@@ -387,3 +387,4 @@ function CustomerCard({ customer }: { customer: BedrockCustomer }) {
     </Card>
   );
 }
+

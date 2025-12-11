@@ -205,3 +205,4 @@ def validate_filter_value(value: Any, max_length: int = 200) -> str:
         raise ValueError("Filter value contains invalid characters")
     
     return str_value
+

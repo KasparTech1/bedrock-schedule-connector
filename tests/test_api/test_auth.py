@@ -347,3 +347,4 @@ class TestAuthEndpoints:
         )
         
         assert response.status_code == 400
+

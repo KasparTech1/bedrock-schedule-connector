@@ -38,14 +38,6 @@ interface AppSettings {
     password: string;
     timeout: number;
   };
-  // Demo Environment
-  demo: {
-    enabled: boolean;
-    baseUrl: string;
-    configName: string;
-    username: string;
-    password: string;
-  };
   // Registry
   registry: {
     configDirectory: string;
@@ -70,13 +62,6 @@ const DEFAULT_SETTINGS: AppSettings = {
     username: "",
     password: "",
     timeout: 30,
-  },
-  demo: {
-    enabled: true,
-    baseUrl: "https://Csi10g.erpsl.inforcloudsuite.com",
-    configName: "DUU6QAFE74D2YDYW_TST_DALS",
-    username: "",
-    password: "",
   },
   registry: {
     configDirectory: "src/kai_erp/connectors_config",
@@ -110,15 +95,6 @@ export function Settings() {
       }
     }
   }, []);
-
-  // Test SyteLine connection
-  const testConnectionMutation = useMutation({
-    mutationFn: async () => {
-      const res = await fetch("/api/demo/health");
-      if (!res.ok) throw new Error("Connection failed");
-      return res.json();
-    },
-  });
 
   // Update a nested setting
   const updateSetting = <K extends keyof AppSettings>(
@@ -260,108 +236,6 @@ export function Settings() {
               />
             </div>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Demo Environment */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FlaskConical className="w-5 h-5" />
-            Demo Environment
-          </CardTitle>
-          <CardDescription>
-            Kaspar Development Workshop test environment for demos
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between p-3 bg-muted rounded-lg">
-            <div>
-              <p className="font-medium">Enable Demo Mode</p>
-              <p className="text-sm text-muted-foreground">
-                Use the demo environment for testing connectors
-              </p>
-            </div>
-            <Select
-              value={settings.demo.enabled ? "enabled" : "disabled"}
-              onValueChange={(v) => updateSetting("demo", "enabled", v === "enabled")}
-            >
-              <SelectTrigger className="w-32">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="enabled">Enabled</SelectItem>
-                <SelectItem value="disabled">Disabled</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {settings.demo.enabled && (
-            <>
-              <Separator />
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="demo-baseUrl">Base URL</Label>
-                  <Input
-                    id="demo-baseUrl"
-                    value={settings.demo.baseUrl}
-                    onChange={(e) => updateSetting("demo", "baseUrl", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="demo-configName">Config Name</Label>
-                  <Input
-                    id="demo-configName"
-                    value={settings.demo.configName}
-                    onChange={(e) => updateSetting("demo", "configName", e.target.value)}
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="demo-username">Username</Label>
-                  <Input
-                    id="demo-username"
-                    value={settings.demo.username}
-                    onChange={(e) => updateSetting("demo", "username", e.target.value)}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="demo-password">Password</Label>
-                  <Input
-                    id="demo-password"
-                    type={showPasswords ? "text" : "password"}
-                    value={settings.demo.password}
-                    onChange={(e) => updateSetting("demo", "password", e.target.value)}
-                  />
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                onClick={() => testConnectionMutation.mutate()}
-                disabled={testConnectionMutation.isPending}
-              >
-                {testConnectionMutation.isPending ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Testing...
-                  </>
-                ) : testConnectionMutation.isSuccess ? (
-                  <>
-                    <CheckCircle2 className="w-4 h-4 mr-2 text-green-500" />
-                    Connected
-                  </>
-                ) : testConnectionMutation.isError ? (
-                  <>
-                    <XCircle className="w-4 h-4 mr-2 text-red-500" />
-                    Failed - Retry
-                  </>
-                ) : (
-                  "Test Connection"
-                )}
-              </Button>
-            </>
-          )}
         </CardContent>
       </Card>
 

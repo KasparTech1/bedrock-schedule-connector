@@ -87,3 +87,4 @@ describe('InlineError', () => {
     expect(container).toHaveClass('mt-2');
   });
 });
+

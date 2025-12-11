@@ -119,3 +119,4 @@ describe('PageErrorBoundary', () => {
     expect(screen.getByRole('button', { name: /return to library/i })).toBeInTheDocument();
   });
 });
+

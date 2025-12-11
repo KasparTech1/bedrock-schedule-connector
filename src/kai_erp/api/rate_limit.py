@@ -89,3 +89,4 @@ def heavy_limit() -> Callable:
 def admin_limit() -> Callable:
     """Rate limit for admin endpoints: 20 requests/minute."""
     return limiter.limit("20/minute")
+

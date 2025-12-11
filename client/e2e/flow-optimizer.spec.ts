@@ -70,3 +70,4 @@ test.describe('Flow Optimizer - Filters', () => {
     await expect(page.locator('body')).toBeVisible();
   });
 });
+

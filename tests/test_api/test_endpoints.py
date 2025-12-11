@@ -181,3 +181,4 @@ class TestErrorHandling:
         # Send invalid data type
         response = client.get("/sales/orders?days_out=not_a_number")
         assert response.status_code == 422
+

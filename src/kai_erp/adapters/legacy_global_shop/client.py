@@ -193,3 +193,4 @@ class GlobalShopBridgeClient:
                 "source": "Global Shop (Pervasive SQL)",
             },
         }
+

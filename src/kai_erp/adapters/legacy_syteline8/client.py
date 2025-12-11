@@ -81,3 +81,4 @@ def _import_pyodbc():
         raise RuntimeError(
             "pyodbc is required for legacy SyteLine 8 connectivity but is not installed/configured."
         ) from e
+

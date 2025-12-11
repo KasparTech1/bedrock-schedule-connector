@@ -5,3 +5,4 @@ Routes should call into this adapter rather than embedding bridge details.
 """
 
 __all__ = []
+

@@ -229,3 +229,4 @@ async def create_test_engine() -> AsyncGenerator[RestEngine, None]:
     engine = RestEngine(config)
     async with engine:
         yield engine
+

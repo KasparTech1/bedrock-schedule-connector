@@ -385,3 +385,4 @@ class TestRestEngineBuildURL:
         url = engine._build_ido_url(spec)
         
         assert "$orderby=Job desc" in url
+
