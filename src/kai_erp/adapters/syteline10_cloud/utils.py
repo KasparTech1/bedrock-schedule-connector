@@ -130,3 +130,4 @@ def parse_bed_type(model: str) -> str:
         return "Quad"
     
     return "Other"
+

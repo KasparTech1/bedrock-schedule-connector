@@ -28,3 +28,4 @@ class CustomerSearchResult:
     total_count: int
     customers: list[Customer]
     fetched_at: datetime
+

@@ -291,3 +291,4 @@ class ScheduleService:
             queue.sort(key=lambda x: (x["job"], x["operation_num"]))
             
             return queue
+

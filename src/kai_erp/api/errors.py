@@ -271,3 +271,4 @@ def setup_exception_handlers(app: FastAPI) -> None:
             ).model_dump(),
         )
 
+

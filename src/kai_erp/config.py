@@ -6,12 +6,11 @@ Central configuration for the KAI ERP Connector.
 All settings are loaded from environment variables with sensible defaults.
 """
 
-import os
 from enum import Enum
 from functools import lru_cache
-from typing import Any, Optional
+from typing import Optional
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -98,28 +97,9 @@ class ServerConfig(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="")
     
     host: str = Field(default="0.0.0.0")
-    port: int = Field(
-        default=8100,
-        description="API server port (reads from API_PORT or PORT environment variable)"
-    )
+    port: int = Field(default=8100)
     log_level: str = Field(default="INFO")
     environment: Environment = Field(default=Environment.DEVELOPMENT)
-    
-    @model_validator(mode="before")
-    @classmethod
-    def _read_port_from_env(cls, data: Any) -> Any:
-        """Read port from API_PORT or PORT environment variable (API_PORT takes precedence)."""
-        if isinstance(data, dict):
-            # API_PORT takes precedence - always check it first and override any existing port value
-            api_port = os.getenv("API_PORT")
-            if api_port:
-                data["port"] = int(api_port)
-            # If API_PORT not set, ensure PORT is used if it exists (Pydantic may have already set this)
-            elif "port" not in data:
-                port = os.getenv("PORT")
-                if port:
-                    data["port"] = int(port)
-        return data
     
     # CORS - configurable via CORS_ORIGINS env var (comma-separated)
     # SECURITY: In production, set explicit origins instead of ["*"]

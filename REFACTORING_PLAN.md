@@ -1001,3 +1001,4 @@ overview = await service.get_schedule_overview()
 - All existing code continues to work
 - New structure enables better testing and maintenance
 - Services can be used independently if needed
+

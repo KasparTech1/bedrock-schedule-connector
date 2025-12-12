@@ -49,14 +49,14 @@ USER appuser
 # Environment variables
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
-ENV API_PORT=8100
+ENV PORT=8100
 
 # Expose port
 EXPOSE 8100
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
-    CMD python -c "import os, urllib.request; port = os.getenv('API_PORT', '8100'); urllib.request.urlopen(f'http://localhost:{port}/health')" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/health')" || exit 1
 
 # Default command: run API server
 CMD ["python", "-m", "kai_erp.api.main"]

@@ -120,3 +120,4 @@ class CustomerService:
         """
         result = await self.search_customers(customer_number=customer_number, limit=1)
         return result.customers[0] if result.customers else None
+

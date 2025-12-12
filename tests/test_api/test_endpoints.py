@@ -182,3 +182,4 @@ class TestErrorHandling:
         response = client.get("/sales/orders?days_out=not_a_number")
         assert response.status_code == 422
 
+

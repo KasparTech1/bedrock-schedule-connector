@@ -52,3 +52,4 @@ class ScheduleOverview:
     work_centers: list[str]
     jobs: list[Job]
     fetched_at: datetime
+

@@ -95,3 +95,4 @@ gitleaks detect --source . --log-opts "HEAD~1..HEAD"
 ## Questions?
 
 Contact the maintainers for security-related questions or to report vulnerabilities.
+

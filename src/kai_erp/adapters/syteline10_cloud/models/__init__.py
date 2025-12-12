@@ -22,3 +22,4 @@ __all__ = [
     "OrderAvailabilityLine",
     "OrderAvailabilityResult",
 ]
+

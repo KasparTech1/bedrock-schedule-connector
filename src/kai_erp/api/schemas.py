@@ -313,3 +313,4 @@ class InventoryResponse(BaseModel):
     items: list[dict[str, Any]] = Field(..., description="List of inventory items")
     summary: QuerySummary
 
+

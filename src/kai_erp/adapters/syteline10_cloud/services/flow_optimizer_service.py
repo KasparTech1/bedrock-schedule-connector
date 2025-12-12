@@ -305,3 +305,4 @@ class FlowOptimizerService:
                 work_centers=sorted(work_centers_set),
                 fetched_at=datetime.now(timezone.utc),
             )
+

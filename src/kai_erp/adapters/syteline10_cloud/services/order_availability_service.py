@@ -396,3 +396,4 @@ class OrderAvailabilityService:
             if track_metrics and metrics_run:
                 metrics_store.complete_run("order-availability", 0, error=str(e))
             raise
+

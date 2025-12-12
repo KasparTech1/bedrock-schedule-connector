@@ -307,3 +307,4 @@ async def get_authenticated_user(
     """
     return jwt_user
 
+

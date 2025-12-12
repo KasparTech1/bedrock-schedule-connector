@@ -131,3 +131,4 @@ class OrderAvailabilityResult:
     total_lines: int
     order_lines: list[OrderAvailabilityLine]
     fetched_at: datetime
+

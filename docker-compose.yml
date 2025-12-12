@@ -3,20 +3,15 @@
 # ═══════════════════════════════════════════════════════════════════════════
 #
 # Usage:
-#   docker compose up -d              # Start API + Frontend
-#   docker compose --profile llm up -d # Start all services with Ollama (GPU)
-#   docker compose logs -f            # Follow logs
-#   docker compose down               # Stop and remove
-#
-# DGX Spark Deployment:
-#   docker compose --profile llm up -d  # Full stack with GPU-accelerated LLM
+#   docker-compose up -d        # Start in background
+#   docker-compose logs -f      # Follow logs
+#   docker-compose down         # Stop and remove
 #
 # ═══════════════════════════════════════════════════════════════════════════
 
+version: '3.8'
+
 services:
-  # ═══════════════════════════════════════════════════════════════════════════
-  # Backend API Service
-  # ═══════════════════════════════════════════════════════════════════════════
   kai-erp-connector:
     build:
       context: .
@@ -27,7 +22,7 @@ services:
     restart: unless-stopped
     
     ports:
-      - "${API_PORT:-8100}:8100"
+      - "${PORT:-8100}:8100"
     
     environment:
       # SyteLine 10 REST API
@@ -42,11 +37,8 @@ services:
       - LAKE_ION_CLIENT_ID=${LAKE_ION_CLIENT_ID:-}
       - LAKE_ION_CLIENT_SECRET=${LAKE_ION_CLIENT_SECRET:-}
       
-      # Ollama LLM (when using llm profile)
-      - OLLAMA_HOST=${OLLAMA_HOST:-http://kai-ollama:11434}
-      
       # Server
-      - API_PORT=${API_PORT:-8100}
+      - PORT=8100
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - ENVIRONMENT=${ENVIRONMENT:-production}
     
@@ -65,48 +57,8 @@ services:
       options:
         max-size: "10m"
         max-file: "3"
-    
-    networks:
-      - kai-network
 
-  # ═══════════════════════════════════════════════════════════════════════════
-  # Frontend Web UI
-  # ═══════════════════════════════════════════════════════════════════════════
-  kai-erp-frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.client
-    
-    container_name: kai-erp-frontend
-    
-    restart: unless-stopped
-    
-    ports:
-      - "${FRONTEND_PORT:-80}:80"
-    
-    depends_on:
-      kai-erp-connector:
-        condition: service_healthy
-    
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 5s
-    
-    logging:
-      driver: "json-file"
-      options:
-        max-size: "10m"
-        max-file: "3"
-    
-    networks:
-      - kai-network
-
-  # ═══════════════════════════════════════════════════════════════════════════
   # MCP Server (optional, for AI agent access via stdio)
-  # ═══════════════════════════════════════════════════════════════════════════
   kai-erp-mcp:
     build:
       context: .
@@ -115,7 +67,7 @@ services:
     container_name: kai-erp-mcp
     
     profiles:
-      - mcp  # Only start with: docker compose --profile mcp up
+      - mcp  # Only start with: docker-compose --profile mcp up
     
     environment:
       - SL10_BASE_URL=${SL10_BASE_URL}
@@ -130,68 +82,47 @@ services:
     
     stdin_open: true
     tty: true
-    
-    networks:
-      - kai-network
 
   # ═══════════════════════════════════════════════════════════════════════════
-  # Local LLM Service (Ollama) - GPU Accelerated for DGX Spark
+  # Local LLM Service (Ollama)
   # ═══════════════════════════════════════════════════════════════════════════
   # 
   # Runs a local LLM for handling user prompts and calling MCP tools.
-  # Start with: docker compose --profile llm up -d
+  # Start with: docker-compose --profile llm up
   #
   # After starting, pull a model:
-  #   docker exec kai-ollama ollama pull llama3.2:3b
-  #   docker exec kai-ollama ollama pull mistral:7b
-  #   docker exec kai-ollama ollama pull codellama:13b
-  #
-  # DGX Spark recommended models:
-  #   docker exec kai-ollama ollama pull llama3.1:70b   # If you have the VRAM
-  #   docker exec kai-ollama ollama pull mixtral:8x7b
+  #   docker exec kai-ollama ollama pull llama3.2:1b
+  #   docker exec kai-ollama ollama pull phi3:mini
   #
   ollama:
     image: ollama/ollama:latest
     container_name: kai-ollama
     
     profiles:
-      - llm  # Only start with: docker compose --profile llm up
+      - llm  # Only start with: docker-compose --profile llm up
     
     ports:
-      - "${OLLAMA_PORT:-11434}:11434"
+      - "11434:11434"
     
     volumes:
       - ollama_data:/root/.ollama
     
     environment:
       - OLLAMA_HOST=0.0.0.0
-      # Optimize for multi-GPU on DGX
-      - OLLAMA_NUM_GPU=${OLLAMA_NUM_GPU:-1}
     
-    # GPU Support for DGX Spark / NVIDIA systems
     deploy:
       resources:
-        reservations:
-          devices:
-            - driver: nvidia
-              count: all  # Use all available GPUs, or set to specific number like 1
-              capabilities: [gpu]
+        limits:
+          memory: 4G
     
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:11434/api/tags || exit 1"]
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
       interval: 30s
       timeout: 10s
       retries: 3
-      start_period: 60s  # Longer start period for model loading
+      start_period: 30s
     
     restart: unless-stopped
-    
-    networks:
-      - kai-network
-
-networks:
-  kai-network:
-    driver: bridge
 
 volumes:
   ollama_data:

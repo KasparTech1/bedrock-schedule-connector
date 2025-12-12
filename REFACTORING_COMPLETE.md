@@ -115,3 +115,4 @@ overview = await service.get_schedule_overview()
 ## Migration Notes
 
 **No migration required!** Existing imports remain valid. Services are available for advanced usage but not required.
+
