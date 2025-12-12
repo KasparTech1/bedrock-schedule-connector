@@ -386,9 +386,11 @@ test.describe('Legacy Connectors Page', () => {
 
       // Should show loading state - check for disabled button or loading text
       // The button should be disabled or show loading text
-      await expect(
-        page.locator('button:has-text("Get Product Lines"):disabled, button:has-text("Loading"), .animate-spin').first()
-      ).toBeVisible({ timeout: 1000 });
+      // Use proper Playwright syntax: check multiple selectors separately
+      const loadingState = page.locator('button:has-text("Get Product Lines"):disabled')
+        .or(page.locator('button:has-text("Loading")'))
+        .or(page.locator('.animate-spin'));
+      await expect(loadingState.first()).toBeVisible({ timeout: 1000 });
     });
   });
 
