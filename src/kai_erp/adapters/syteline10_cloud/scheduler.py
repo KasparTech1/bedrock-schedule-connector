@@ -26,220 +26,33 @@ Not yet available (need to request access):
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from typing import Any, Optional
 
 import structlog
 
 from .mongoose_client import MongooseClient, MongooseConfig
+from .models import (
+    Customer,
+    CustomerSearchResult,
+    FlowOptimizerResult,
+    Job,
+    JobOperation,
+    OpenOrderLine,
+    OrderAvailabilityLine,
+    OrderAvailabilityResult,
+    ScheduleOverview,
+)
+from .utils import (
+    clean_str,
+    format_date,
+    parse_bed_length,
+    parse_bed_type,
+    parse_float,
+    parse_syteline_date,
+)
 
 logger = structlog.get_logger(__name__)
-
-
-@dataclass
-class JobOperation:
-    """A single operation within a job."""
-    job: str
-    suffix: int
-    operation_num: int
-    work_center: str
-    qty_complete: float
-    qty_scrapped: float
-    # Future: sched_start, sched_finish when SLJrtSchs available
-
-
-@dataclass
-class Job:
-    """A manufacturing job with its operations."""
-    job: str
-    suffix: int
-    item: str
-    item_description: str
-    qty_released: float
-    qty_complete: float
-    status: str
-    customer_num: Optional[str]
-    customer_name: Optional[str]
-    operations: list[JobOperation]
-    
-    @property
-    def pct_complete(self) -> float:
-        """Calculate percent complete."""
-        if self.qty_released <= 0:
-            return 0.0
-        return round((self.qty_complete / self.qty_released) * 100, 1)
-    
-    @property
-    def is_complete(self) -> bool:
-        """Check if job is fully complete."""
-        return self.qty_complete >= self.qty_released
-
-
-@dataclass  
-class ScheduleOverview:
-    """Overview of production schedule."""
-    total_jobs: int
-    active_jobs: int
-    jobs_by_status: dict[str, int]
-    work_centers: list[str]
-    jobs: list[Job]
-    fetched_at: datetime
-
-
-@dataclass
-class Customer:
-    """A Bedrock customer record."""
-    cust_num: str
-    name: str
-    addr1: Optional[str]
-    addr2: Optional[str]
-    city: Optional[str]
-    state: Optional[str]
-    zip_code: Optional[str]
-    country: Optional[str]
-    phone: Optional[str]
-    contact: Optional[str]
-    email: Optional[str]
-    cust_type: Optional[str]
-    status: str  # A=Active, I=Inactive
-
-
-@dataclass
-class CustomerSearchResult:
-    """Result of a customer search."""
-    total_count: int
-    customers: list[Customer]
-    fetched_at: datetime
-
-
-@dataclass
-class OpenOrderLine:
-    """
-    A single open order line for Flow Optimizer export.
-    
-    Schema matches the TBE_App OPEN ORDERS V5 query output.
-    One row per ORDER LINE with item-level WIP data.
-    """
-    # Order identification
-    order_num: str
-    order_line: int
-    customer_name: str
-    order_date: Optional[str]
-    due_date: Optional[str]
-    days_until_due: int
-    urgency: str  # OVERDUE, TODAY, THIS_WEEK, NEXT_WEEK, LATER
-    
-    # Item details
-    item: str
-    model: Optional[str]  # Drawing number
-    item_description: str
-    bed_type: str  # Granite, Diamond, Marble, etc.
-    bed_length: int  # For position 7 eligibility
-    
-    # Order quantities
-    qty_ordered: float
-    qty_shipped: float
-    qty_remaining: float
-    
-    # Item-level WIP data (same for all orders of this item)
-    item_on_hand: float
-    item_at_paint: float
-    item_at_blast: float
-    item_at_weld: float
-    item_at_assy: float
-    item_total_pipeline: float
-    
-    # Job information
-    job_numbers: str
-    qty_released: float
-    released_date: Optional[str]
-    
-    # Line value for prioritization
-    line_value: float
-    
-    # Flags
-    first_for_item: bool
-
-
-@dataclass
-class FlowOptimizerResult:
-    """Result of flow optimizer data fetch."""
-    total_orders: int
-    total_lines: int
-    order_lines: list[OpenOrderLine]
-    work_centers: list[str]
-    fetched_at: datetime
-
-
-@dataclass
-class OrderAvailabilityLine:
-    """
-    A customer order line with availability and allocation information.
-    
-    Emulates the TBE_Customer_Order_Availability_Add_Release_Date stored procedure output.
-    Shows how inventory is allocated from different production stages.
-    """
-    # Order identification
-    co_data_id: int
-    co_num: str
-    co_line: int
-    co_release: int
-    
-    # Customer information
-    customer_name: str
-    
-    # Dates
-    order_date: Optional[str]
-    due_date: Optional[str]
-    released_date: Optional[str]
-    
-    # Estimated completion dates
-    weld_fab_completion_date: Optional[str]
-    blast_completion_date: Optional[str]
-    paint_assembly_completion_date: Optional[str]
-    
-    # Item information
-    item: str
-    model: Optional[str]
-    item_description: str
-    
-    # Quantities
-    qty_ordered: float
-    qty_shipped: float
-    qty_remaining: float
-    qty_remaining_covered: float
-    
-    # Inventory quantities
-    qty_on_hand: float
-    current_on_hand: float
-    qty_nf: float
-    qty_alloc_co: float
-    qty_wip: float
-    qty_released: float
-    
-    # Production stage totals and allocations
-    total_in_paint: float
-    allocated_from_paint: float
-    total_in_blast: float
-    allocated_from_blast: float
-    total_in_released_weld_fab: float
-    allocated_from_released_weld_fab: float
-    
-    # Related jobs
-    jobs: str
-    
-    # Financial
-    line_amount: float
-
-
-@dataclass
-class OrderAvailabilityResult:
-    """Result of order availability fetch."""
-    total_orders: int
-    total_lines: int
-    order_lines: list[OrderAvailabilityLine]
-    fetched_at: datetime
 
 
 class BedrockScheduler:
@@ -301,19 +114,19 @@ class BedrockScheduler:
             
             # Build lookup tables
             items_lookup = {
-                self._clean_str(i.get("Item")): i.get("Description", "")
+                clean_str(i.get("Item")): i.get("Description", "")
                 for i in data.get("SLItems", [])
             }
             
             customers_lookup = {
-                self._clean_str(c.get("CustNum")): c.get("Name", "")
+                clean_str(c.get("CustNum")): c.get("Name", "")
                 for c in data.get("SLCustomers", [])
             }
             
             # Group operations by job
             ops_by_job: dict[str, list[dict]] = {}
             for op in data.get("SLJobRoutes", []):
-                job_key = f"{self._clean_str(op.get('Job'))}_{op.get('Suffix', '0')}"
+                job_key = f"{clean_str(op.get('Job'))}_{op.get('Suffix', '0')}"
                 if job_key not in ops_by_job:
                     ops_by_job[job_key] = []
                 ops_by_job[job_key].append(op)
@@ -324,18 +137,18 @@ class BedrockScheduler:
             work_centers_set: set[str] = set()
             
             for job_data in data.get("SLJobs", []):
-                job_num = self._clean_str(job_data.get("Job"))
+                job_num = clean_str(job_data.get("Job"))
                 suffix = int(job_data.get("Suffix", 0) or 0)
                 job_key = f"{job_num}_{suffix}"
                 
-                item = self._clean_str(job_data.get("Item"))
-                cust_num = self._clean_str(job_data.get("CustNum"))
-                status = self._clean_str(job_data.get("Stat"))
+                item = clean_str(job_data.get("Item"))
+                cust_num = clean_str(job_data.get("CustNum"))
+                status = clean_str(job_data.get("Stat"))
                 
                 # Build operations
                 operations = []
                 for op_data in ops_by_job.get(job_key, []):
-                    wc = self._clean_str(op_data.get("Wc"))
+                    wc = clean_str(op_data.get("Wc"))
                     work_centers_set.add(wc)
                     
                     operations.append(JobOperation(
@@ -343,8 +156,8 @@ class BedrockScheduler:
                         suffix=suffix,
                         operation_num=int(op_data.get("OperNum", 0) or 0),
                         work_center=wc,
-                        qty_complete=self._parse_float(op_data.get("QtyComplete")),
-                        qty_scrapped=self._parse_float(op_data.get("QtyScrapped")),
+                        qty_complete=parse_float(op_data.get("QtyComplete")),
+                        qty_scrapped=parse_float(op_data.get("QtyScrapped")),
                     ))
                 
                 # Sort operations by operation number
@@ -355,8 +168,8 @@ class BedrockScheduler:
                     suffix=suffix,
                     item=item,
                     item_description=items_lookup.get(item, ""),
-                    qty_released=self._parse_float(job_data.get("QtyReleased")),
-                    qty_complete=self._parse_float(job_data.get("QtyComplete")),
+                    qty_released=parse_float(job_data.get("QtyReleased")),
+                    qty_complete=parse_float(job_data.get("QtyComplete")),
                     status=status,
                     customer_num=cust_num if cust_num else None,
                     customer_name=customers_lookup.get(cust_num) if cust_num else None,
@@ -436,9 +249,9 @@ class BedrockScheduler:
                 return None
             
             job_data = jobs[0]
-            job_num = self._clean_str(job_data.get("Job"))
-            item = self._clean_str(job_data.get("Item"))
-            cust_num = self._clean_str(job_data.get("CustNum"))
+            job_num = clean_str(job_data.get("Job"))
+            item = clean_str(job_data.get("Item"))
+            cust_num = clean_str(job_data.get("CustNum"))
             
             # Get item description
             items = await client.query_ido("SLItems", ["Item", "Description"], f"Item='{item}'", 1)
@@ -457,9 +270,9 @@ class BedrockScheduler:
                     job=job_num,
                     suffix=suffix,
                     operation_num=int(op_data.get("OperNum", 0) or 0),
-                    work_center=self._clean_str(op_data.get("Wc")),
-                    qty_complete=self._parse_float(op_data.get("QtyComplete")),
-                    qty_scrapped=self._parse_float(op_data.get("QtyScrapped")),
+                    work_center=clean_str(op_data.get("Wc")),
+                    qty_complete=parse_float(op_data.get("QtyComplete")),
+                    qty_scrapped=parse_float(op_data.get("QtyScrapped")),
                 ))
             
             operations.sort(key=lambda x: x.operation_num)
@@ -469,9 +282,9 @@ class BedrockScheduler:
                 suffix=suffix,
                 item=item,
                 item_description=item_desc,
-                qty_released=self._parse_float(job_data.get("QtyReleased")),
-                qty_complete=self._parse_float(job_data.get("QtyComplete")),
-                status=self._clean_str(job_data.get("Stat")),
+                qty_released=parse_float(job_data.get("QtyReleased")),
+                qty_complete=parse_float(job_data.get("QtyComplete")),
+                status=clean_str(job_data.get("Stat")),
                 customer_num=cust_num if cust_num else None,
                 customer_name=cust_name,
                 operations=operations,
@@ -501,7 +314,7 @@ class BedrockScheduler:
                 return []
             
             # Get unique jobs
-            job_nums = list(set(self._clean_str(op.get("Job")) for op in ops))
+            job_nums = list(set(clean_str(op.get("Job")) for op in ops))
             
             # Fetch job details (limited batch)
             jobs = await client.query_ido(
@@ -513,25 +326,25 @@ class BedrockScheduler:
             
             # Build job lookup
             jobs_lookup = {
-                self._clean_str(j.get("Job")): j
+                clean_str(j.get("Job")): j
                 for j in jobs
             }
             
             # Build queue with job info
             queue = []
             for op in ops:
-                job_num = self._clean_str(op.get("Job"))
+                job_num = clean_str(op.get("Job"))
                 job_data = jobs_lookup.get(job_num, {})
                 
                 queue.append({
                     "job": job_num,
                     "suffix": int(op.get("Suffix", 0) or 0),
                     "operation_num": int(op.get("OperNum", 0) or 0),
-                    "work_center": self._clean_str(op.get("Wc")),
-                    "item": self._clean_str(job_data.get("Item")),
-                    "qty_released": self._parse_float(job_data.get("QtyReleased")),
-                    "qty_complete": self._parse_float(op.get("QtyComplete")),
-                    "job_status": self._clean_str(job_data.get("Stat")),
+                    "work_center": clean_str(op.get("Wc")),
+                    "item": clean_str(job_data.get("Item")),
+                    "qty_released": parse_float(job_data.get("QtyReleased")),
+                    "qty_complete": parse_float(op.get("QtyComplete")),
+                    "job_status": clean_str(job_data.get("Stat")),
                 })
             
             # Sort by job number and operation
@@ -599,8 +412,8 @@ class BedrockScheduler:
             # Build customer objects
             customers = []
             for cust_data in raw_customers:
-                cust_num = self._clean_str(cust_data.get("CustNum"))
-                name = self._clean_str(cust_data.get("Name"))
+                cust_num = clean_str(cust_data.get("CustNum"))
+                name = clean_str(cust_data.get("Name"))
                 
                 # Apply search_term filter (client-side since LIKE may not work well)
                 if search_term:
@@ -612,17 +425,17 @@ class BedrockScheduler:
                 customers.append(Customer(
                     cust_num=cust_num,
                     name=name,
-                    addr1=self._clean_str(cust_data.get("Addr_1")) or None,
-                    addr2=self._clean_str(cust_data.get("Addr_2")) or None,
-                    city=self._clean_str(cust_data.get("City")) or None,
-                    state=self._clean_str(cust_data.get("State")) or None,
-                    zip_code=self._clean_str(cust_data.get("Zip")) or None,
-                    country=self._clean_str(cust_data.get("Country")) or None,
-                    phone=self._clean_str(cust_data.get("TelexNum")) or None,  # Phone field
-                    contact=self._clean_str(cust_data.get("Contact_1")) or None,
+                    addr1=clean_str(cust_data.get("Addr_1")) or None,
+                    addr2=clean_str(cust_data.get("Addr_2")) or None,
+                    city=clean_str(cust_data.get("City")) or None,
+                    state=clean_str(cust_data.get("State")) or None,
+                    zip_code=clean_str(cust_data.get("Zip")) or None,
+                    country=clean_str(cust_data.get("Country")) or None,
+                    phone=clean_str(cust_data.get("TelexNum")) or None,  # Phone field
+                    contact=clean_str(cust_data.get("Contact_1")) or None,
                     email=None,  # Email may need different property
-                    cust_type=self._clean_str(cust_data.get("CustType")) or None,
-                    status=self._clean_str(cust_data.get("Stat")) or "A",
+                    cust_type=clean_str(cust_data.get("CustType")) or None,
+                    status=clean_str(cust_data.get("Stat")) or "A",
                 ))
             
             # Apply limit
@@ -707,14 +520,14 @@ class BedrockScheduler:
             
             # Build lookup tables
             customers_lookup = {
-                self._clean_str(c.get("CustNum")): self._clean_str(c.get("Name"))
+                clean_str(c.get("CustNum")): clean_str(c.get("Name"))
                 for c in data.get("SLCustomers", [])
             }
             
             items_lookup = {
-                self._clean_str(i.get("Item")): {
-                    "description": self._clean_str(i.get("Description")),
-                    "drawing": self._clean_str(
+                clean_str(i.get("Item")): {
+                    "description": clean_str(i.get("Description")),
+                    "drawing": clean_str(
                         i.get("DerDrawingNbr") or 
                         i.get("DrawingNbr") or 
                         i.get("Drawing_Nbr") or 
@@ -726,10 +539,10 @@ class BedrockScheduler:
             
             # Build inventory lookup
             inventory_lookup = {
-                self._clean_str(i.get("Item")): {
-                    "on_hand": self._parse_float(i.get("QtyOnHand")),
-                    "alloc_co": self._parse_float(i.get("QtyAllocCo")),
-                    "wip": self._parse_float(i.get("QtyWip")),
+                clean_str(i.get("Item")): {
+                    "on_hand": parse_float(i.get("QtyOnHand")),
+                    "alloc_co": parse_float(i.get("QtyAllocCo")),
+                    "wip": parse_float(i.get("QtyWip")),
                 }
                 for i in data.get("SLItemwhses", [])
             }
@@ -739,10 +552,10 @@ class BedrockScheduler:
             wip_by_item: dict[str, dict[str, float]] = {}
             for route in data.get("SLJobRoutes", []):
                 # Find the job to get the item
-                job_num = self._clean_str(route.get("Job"))
-                wc = self._clean_str(route.get("Wc")).upper()
-                qty_received = self._parse_float(route.get("QtyReceived"))
-                qty_complete = self._parse_float(route.get("QtyComplete"))
+                job_num = clean_str(route.get("Job"))
+                wc = clean_str(route.get("Wc")).upper()
+                qty_received = parse_float(route.get("QtyReceived"))
+                qty_complete = parse_float(route.get("QtyComplete"))
                 qty_at_wc = max(0, qty_received - qty_complete)
                 
                 if qty_at_wc <= 0:
@@ -750,8 +563,8 @@ class BedrockScheduler:
                 
                 # Find item for this job
                 for job in data.get("SLJobs", []):
-                    if self._clean_str(job.get("Job")) == job_num:
-                        item = self._clean_str(job.get("Item"))
+                    if clean_str(job.get("Job")) == job_num:
+                        item = clean_str(job.get("Item"))
                         if item not in wip_by_item:
                             wip_by_item[item] = {"WELD": 0, "AWELD": 0, "BLAST": 0, "PAINT": 0, "ASSY": 0}
                         if wc in wip_by_item[item]:
@@ -772,14 +585,14 @@ class BedrockScheduler:
             
             jobs_by_item: dict[str, list[dict]] = {}
             for job in data.get("SLJobs", []):
-                job_num = self._clean_str(job.get("Job"))
-                job_type = self._clean_str(job.get("Type"))
-                job_stat = self._clean_str(job.get("Stat"))
+                job_num = clean_str(job.get("Job"))
+                job_type = clean_str(job.get("Type"))
+                job_stat = clean_str(job.get("Stat"))
                 
                 # Only J-type jobs that are Firm or Released
                 # Bedrock job numbers typically start with JT
                 if job_type == "J" and job_stat in ("F", "R"):
-                    item = self._clean_str(job.get("Item"))
+                    item = clean_str(job.get("Item"))
                     if item not in jobs_by_item:
                         jobs_by_item[item] = []
                     jobs_by_item[item].append(job)
@@ -792,9 +605,9 @@ class BedrockScheduler:
             
             # Build order lookup
             orders_lookup = {
-                self._clean_str(o.get("CoNum")): {
-                    "cust_num": self._clean_str(o.get("CustNum")),
-                    "order_date": self._clean_str(o.get("OrderDate")),
+                clean_str(o.get("CoNum")): {
+                    "cust_num": clean_str(o.get("CustNum")),
+                    "order_date": clean_str(o.get("OrderDate")),
                 }
                 for o in data.get("SLCos", [])
             }
@@ -807,16 +620,16 @@ class BedrockScheduler:
             today = datetime.now().date()
             
             for coitem in data.get("SLCoitems", []):
-                co_num = self._clean_str(coitem.get("CoNum"))
-                item = self._clean_str(coitem.get("Item"))
+                co_num = clean_str(coitem.get("CoNum"))
+                item = clean_str(coitem.get("Item"))
                 
                 # Skip if order not found (shouldn't happen)
                 if co_num not in orders_lookup:
                     continue
                 
                 order = orders_lookup[co_num]
-                qty_ordered = self._parse_float(coitem.get("QtyOrdered"))
-                qty_shipped = self._parse_float(coitem.get("QtyShipped"))
+                qty_ordered = parse_float(coitem.get("QtyOrdered"))
+                qty_shipped = parse_float(coitem.get("QtyShipped"))
                 qty_remaining = qty_ordered - qty_shipped
                 
                 # Skip fully shipped lines
@@ -828,12 +641,12 @@ class BedrockScheduler:
                 
                 # Parse due date and calculate urgency
                 # Try DueDate first, then PromiseDate as fallback
-                due_date_str = self._clean_str(coitem.get("DueDate") or coitem.get("PromiseDate") or "")
+                due_date_str = clean_str(coitem.get("DueDate") or coitem.get("PromiseDate") or "")
                 due_date = None
                 days_until_due = 999
                 urgency = "LATER"
                 
-                due_date = self._parse_syteline_date(due_date_str)
+                due_date = parse_syteline_date(due_date_str)
                 if due_date:
                     days_until_due = (due_date - today).days
                     if days_until_due < 0:
@@ -858,14 +671,14 @@ class BedrockScheduler:
                 
                 # Get job info for this item
                 item_jobs = jobs_by_item.get(item, [])
-                job_numbers = "; ".join([self._clean_str(j.get("Job")) for j in item_jobs])
-                qty_released = sum(self._parse_float(j.get("QtyReleased")) for j in item_jobs)
+                job_numbers = "; ".join([clean_str(j.get("Job")) for j in item_jobs])
+                qty_released = sum(parse_float(j.get("QtyReleased")) for j in item_jobs)
                 released_date = None
                 if item_jobs:
-                    dates = [self._clean_str(j.get("JobDate")) for j in item_jobs if j.get("JobDate")]
+                    dates = [clean_str(j.get("JobDate")) for j in item_jobs if j.get("JobDate")]
                     if dates:
                         # Parse and format the most recent job date
-                        parsed_dates = [self._parse_syteline_date(d) for d in dates]
+                        parsed_dates = [parse_syteline_date(d) for d in dates]
                         valid_dates = [d for d in parsed_dates if d]
                         if valid_dates:
                             released_date = max(valid_dates).isoformat()
@@ -873,11 +686,11 @@ class BedrockScheduler:
                 # Parse bed type and length from drawing number or item code
                 # Use drawing if available, otherwise fall back to item code
                 model = item_info["drawing"] if item_info["drawing"] else item
-                bed_type = self._parse_bed_type(model)
-                bed_length = self._parse_bed_length(model)
+                bed_type = parse_bed_type(model)
+                bed_length = parse_bed_length(model)
                 
                 # Calculate line value
-                price = self._parse_float(coitem.get("Price"))
+                price = parse_float(coitem.get("Price"))
                 line_value = qty_remaining * price
                 
                 # Track first for item
@@ -886,11 +699,11 @@ class BedrockScheduler:
                     items_seen[item] = 1
                 
                 # Format order date
-                order_date_formatted = self._format_date(order["order_date"]) if order["order_date"] else None
+                order_date_formatted = format_date(order["order_date"]) if order["order_date"] else None
                 
                 order_lines.append(OpenOrderLine(
                     order_num=co_num,
-                    order_line=int(self._parse_float(coitem.get("CoLine"))),
+                    order_line=int(parse_float(coitem.get("CoLine"))),
                     customer_name=customers_lookup.get(order["cust_num"], ""),
                     order_date=order_date_formatted,
                     due_date=due_date.isoformat() if due_date else None,
@@ -1030,14 +843,14 @@ class BedrockScheduler:
             # Build customer lookup (with CustSeq)
             customers_lookup = {}
             for c in data.get("SLCustaddrs", []):
-                key = f"{self._clean_str(c.get('CustNum'))}_{self._clean_str(c.get('CustSeq'))}"
-                customers_lookup[key] = self._clean_str(c.get("Name"))
+                key = f"{clean_str(c.get('CustNum'))}_{clean_str(c.get('CustSeq'))}"
+                customers_lookup[key] = clean_str(c.get("Name"))
             
             # Build items lookup
             items_lookup = {
-                self._clean_str(i.get("Item")): {
-                    "description": self._clean_str(i.get("Description")),
-                    "drawing": self._clean_str(
+                clean_str(i.get("Item")): {
+                    "description": clean_str(i.get("Description")),
+                    "drawing": clean_str(
                         i.get("DerDrawingNbr") or i.get("DrawingNbr") or ""
                     ),
                 }
@@ -1047,12 +860,12 @@ class BedrockScheduler:
             # Build inventory lookup
             inventory_by_item: dict[str, dict] = {}
             for inv in data.get("SLItemwhses", []):
-                item_num = self._clean_str(inv.get("Item"))
+                item_num = clean_str(inv.get("Item"))
                 inventory_by_item[item_num] = {
-                    "on_hand": self._parse_float(inv.get("QtyOnHand")),
-                    "on_hand_cursor": self._parse_float(inv.get("QtyOnHand")),
-                    "alloc_co": self._parse_float(inv.get("QtyAllocCo")),
-                    "wip": self._parse_float(inv.get("QtyWip")),
+                    "on_hand": parse_float(inv.get("QtyOnHand")),
+                    "on_hand_cursor": parse_float(inv.get("QtyOnHand")),
+                    "alloc_co": parse_float(inv.get("QtyAllocCo")),
+                    "wip": parse_float(inv.get("QtyWip")),
                     "in_paint": 0.0,
                     "in_blast": 0.0,
                     "released_weld_fab": 0.0,
@@ -1060,10 +873,10 @@ class BedrockScheduler:
             
             # Calculate WIP at each work center by item
             for route in data.get("SLJobRoutes", []):
-                job_num = self._clean_str(route.get("Job"))
-                wc = self._clean_str(route.get("Wc")).upper()
-                qty_received = self._parse_float(route.get("QtyReceived"))
-                qty_complete = self._parse_float(route.get("QtyComplete"))
+                job_num = clean_str(route.get("Job"))
+                wc = clean_str(route.get("Wc")).upper()
+                qty_received = parse_float(route.get("QtyReceived"))
+                qty_complete = parse_float(route.get("QtyComplete"))
                 qty_at_wc = max(0, qty_received - qty_complete)
                 
                 if qty_at_wc <= 0:
@@ -1071,8 +884,8 @@ class BedrockScheduler:
                 
                 # Find item for this job
                 for job in data.get("SLJobs", []):
-                    if self._clean_str(job.get("Job")) == job_num:
-                        item_num = self._clean_str(job.get("Item"))
+                    if clean_str(job.get("Job")) == job_num:
+                        item_num = clean_str(job.get("Item"))
                         if item_num not in inventory_by_item:
                             inventory_by_item[item_num] = {
                                 "on_hand": 0, "on_hand_cursor": 0, "alloc_co": 0,
@@ -1092,19 +905,19 @@ class BedrockScheduler:
             # Build jobs by item lookup
             jobs_by_item: dict[str, list[dict]] = {}
             for job in data.get("SLJobs", []):
-                job_stat = self._clean_str(job.get("Stat"))
+                job_stat = clean_str(job.get("Stat"))
                 if job_stat in ("F", "R"):
-                    item_num = self._clean_str(job.get("Item"))
+                    item_num = clean_str(job.get("Item"))
                     if item_num not in jobs_by_item:
                         jobs_by_item[item_num] = []
                     jobs_by_item[item_num].append(job)
             
             # Build order lookup
             orders_lookup = {
-                self._clean_str(o.get("CoNum")): {
-                    "cust_num": self._clean_str(o.get("CustNum")),
-                    "cust_seq": self._clean_str(o.get("CustSeq") or "0"),
-                    "order_date": self._clean_str(o.get("OrderDate")),
+                clean_str(o.get("CoNum")): {
+                    "cust_num": clean_str(o.get("CustNum")),
+                    "cust_seq": clean_str(o.get("CustSeq") or "0"),
+                    "order_date": clean_str(o.get("OrderDate")),
                 }
                 for o in data.get("SLCos", [])
             }
@@ -1114,15 +927,15 @@ class BedrockScheduler:
             today = datetime.now().date()
             
             for coitem in data.get("SLCoitems", []):
-                co_num = self._clean_str(coitem.get("CoNum"))
-                item_num = self._clean_str(coitem.get("Item"))
+                co_num = clean_str(coitem.get("CoNum"))
+                item_num = clean_str(coitem.get("Item"))
                 
                 if co_num not in orders_lookup:
                     continue
                 
                 order = orders_lookup[co_num]
-                qty_ordered = self._parse_float(coitem.get("QtyOrdered"))
-                qty_shipped = self._parse_float(coitem.get("QtyShipped"))
+                qty_ordered = parse_float(coitem.get("QtyOrdered"))
+                qty_shipped = parse_float(coitem.get("QtyShipped"))
                 qty_remaining = qty_ordered - qty_shipped
                 
                 if qty_remaining <= 0:
@@ -1145,21 +958,21 @@ class BedrockScheduler:
                 })
                 
                 # Parse due date
-                due_date_str = self._clean_str(coitem.get("DueDate") or "")
-                due_date = self._parse_syteline_date(due_date_str)
+                due_date_str = clean_str(coitem.get("DueDate") or "")
+                due_date = parse_syteline_date(due_date_str)
                 
                 # Get job info
                 item_jobs = jobs_by_item.get(item_num, [])
-                job_numbers = "; ".join([self._clean_str(j.get("Job")) for j in item_jobs])
+                job_numbers = "; ".join([clean_str(j.get("Job")) for j in item_jobs])
                 qty_released = sum(
-                    self._parse_float(j.get("QtyReleased")) 
-                    for j in item_jobs if self._clean_str(j.get("Stat")) == "R"
+                    parse_float(j.get("QtyReleased")) 
+                    for j in item_jobs if clean_str(j.get("Stat")) == "R"
                 )
                 
                 # Get released date (most recent)
                 released_date = None
                 if item_jobs:
-                    dates = [self._parse_syteline_date(self._clean_str(j.get("JobDate"))) for j in item_jobs]
+                    dates = [parse_syteline_date(clean_str(j.get("JobDate"))) for j in item_jobs]
                     valid_dates = [d for d in dates if d]
                     if valid_dates:
                         released_date = max(valid_dates)
@@ -1173,15 +986,15 @@ class BedrockScheduler:
                     blast_date = add_business_days(released_date, BLAST_DAYS)
                     paint_date = add_business_days(released_date, PAINT_DAYS)
                 
-                price = self._parse_float(coitem.get("Price"))
+                price = parse_float(coitem.get("Price"))
                 line_amount = qty_remaining * price
                 
                 raw_lines.append({
                     "co_num": co_num,
-                    "co_line": int(self._parse_float(coitem.get("CoLine"))),
-                    "co_release": int(self._parse_float(coitem.get("CoRelease") or 0)),
+                    "co_line": int(parse_float(coitem.get("CoLine"))),
+                    "co_release": int(parse_float(coitem.get("CoRelease") or 0)),
                     "customer_name": cust_name,
-                    "order_date": self._format_date(order["order_date"]),
+                    "order_date": format_date(order["order_date"]),
                     "due_date": due_date.isoformat() if due_date else None,
                     "released_date": released_date.isoformat() if released_date else None,
                     "weld_fab_completion_date": weld_fab_date.isoformat() if weld_fab_date else None,
@@ -1318,130 +1131,3 @@ class BedrockScheduler:
             if track_metrics and metrics_run:
                 metrics_store.complete_run("order-availability", 0, error=str(e))
             raise
-
-    def _parse_bed_type(self, model: str) -> str:
-        """
-        Parse bed type from model/drawing number or item code.
-        
-        Examples:
-        - "14G-7" -> Granite (ends with G before dash)
-        - "23D" -> Diamond (ends with D)
-        - "14GP-7" or "6GP" -> Granite+ (contains GP)
-        - "8M-9" -> Marble (ends with M before dash)
-        - "14D-7" -> Diamond
-        """
-        if not model:
-            return "Other"
-        
-        model_upper = model.upper().strip()
-        
-        # Check for Granite+ first (GP patterns - must check before G)
-        if "GP" in model_upper:
-            return "Granite+"
-        
-        # Get the prefix before first dash (e.g., "14G" from "14G-7")
-        prefix = model_upper.split("-")[0] if "-" in model_upper else model_upper
-        
-        # Remove any trailing numbers from prefix for items like "23D"
-        # But keep the letter suffix
-        stripped_prefix = prefix.rstrip("0123456789")
-        if not stripped_prefix:
-            stripped_prefix = prefix
-        
-        # Check last character of prefix
-        last_char = stripped_prefix[-1] if stripped_prefix else ""
-        
-        if last_char == "D":
-            return "Diamond"
-        elif last_char == "G":
-            return "Granite"
-        elif last_char == "M":
-            return "Marble"
-        elif last_char == "L":
-            return "Limestone"
-        elif last_char == "P":
-            return "Platform"
-        elif last_char == "O":
-            return "Onyx"
-        elif last_char == "S":
-            return "Slate"
-        elif "QU" in model_upper or (prefix.startswith("Q") and len(prefix) > 1):
-            return "Quad"
-        
-        return "Other"
-    
-    def _parse_syteline_date(self, date_str: str) -> datetime.date | None:
-        """
-        Parse SyteLine date format.
-        
-        SyteLine dates can be in various formats:
-        - "20251022 0" (YYYYMMDD with suffix)
-        - "2025-10-22"
-        - "2025-10-22T00:00:00"
-        - "10/22/2025"
-        """
-        if not date_str:
-            return None
-        
-        date_str = date_str.strip()
-        
-        # Handle "YYYYMMDD 0" format (SyteLine standard)
-        if " " in date_str and len(date_str.split()[0]) == 8:
-            try:
-                return datetime.strptime(date_str.split()[0], "%Y%m%d").date()
-            except ValueError:
-                pass
-        
-        # Try various formats
-        for fmt in ["%Y%m%d", "%Y-%m-%d", "%Y-%m-%dT%H:%M:%S", "%m/%d/%Y"]:
-            try:
-                return datetime.strptime(date_str[:10], fmt).date()
-            except ValueError:
-                continue
-        
-        return None
-    
-    def _format_date(self, date_str: str) -> str | None:
-        """Format a SyteLine date string to ISO format."""
-        parsed = self._parse_syteline_date(date_str)
-        return parsed.isoformat() if parsed else None
-    
-    def _parse_bed_length(self, drawing: str) -> int:
-        """Parse bed length from drawing number (first 1-2 digits)."""
-        if not drawing:
-            return 0
-        
-        # Try to extract leading digits
-        digits = ""
-        for char in drawing:
-            if char.isdigit():
-                digits += char
-            else:
-                break
-        
-        if digits and len(digits) <= 2:
-            try:
-                return int(digits)
-            except ValueError:
-                pass
-        
-        return 0
-    
-    # =========================================================================
-    # UTILITY METHODS
-    # =========================================================================
-    
-    def _clean_str(self, value: Any) -> str:
-        """Clean string value - strip whitespace."""
-        if value is None:
-            return ""
-        return str(value).strip()
-    
-    def _parse_float(self, value: Any) -> float:
-        """Parse float value safely."""
-        if value is None:
-            return 0.0
-        try:
-            return float(value)
-        except (ValueError, TypeError):
-            return 0.0
