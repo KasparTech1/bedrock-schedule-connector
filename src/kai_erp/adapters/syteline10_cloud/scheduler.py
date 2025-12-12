@@ -173,16 +173,3 @@ class BedrockScheduler:
             limit=limit,
             track_metrics=track_metrics,
         )
-                # Open customer orders (Stat='O')
-                ("SLCos", ["CoNum", "CustNum", "OrderDate", "Stat"], "Stat='O'", 1000),
-                # Order line items (Stat='O' for open lines)
-                # DueDate may also be named Due_Date or PromiseDate in SyteLine
-                ("SLCoitems", ["CoNum", "CoLine", "Item", "QtyOrdered", "QtyShipped", "DueDate", "PromiseDate", "Price", "Stat"], "Stat='O'", 5000),
-                # Customer names
-                ("SLCustomers", ["CustNum", "Name"], None, 5000),
-                # Item details - DerDrawingNbr or Drawing_Nbr
-                ("SLItems", ["Item", "Description", "DerDrawingNbr", "DrawingNbr"], None, 10000),
-                # Jobs - Bedrock uses JT prefix for their jobs, Type='J', Stat in F/R
-                # Get all J-type jobs that are open (Firm or Released)
-                ("SLJobs", ["Job", "Suffix", "Item", "QtyReleased", "QtyComplete", "Stat", "Type", "JobDate"], "Type='J'", 5000),
-                # Job routes for WIP at work centers
