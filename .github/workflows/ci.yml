@@ -39,7 +39,7 @@ jobs:
         run: uv run ruff format --check src/ tests/
 
       - name: Run mypy type checker
-        run: uv run mypy src/ --ignore-missing-imports
+        run: uv run mypy src/
 
       - name: Run pytest
         run: uv run pytest --cov=kai_erp --cov-report=xml --cov-report=term-missing
