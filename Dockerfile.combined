@@ -29,7 +29,9 @@ RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
 COPY . .
-RUN pip install --no-cache-dir -e .
+# Install in non-editable mode since we only copy /app/src to runtime stage
+# Editable installs create metadata pointing to /app which won't exist in runtime
+RUN pip install --no-cache-dir .
 
 
 # ─────────────────────────────────────────────────────────────────────────────
