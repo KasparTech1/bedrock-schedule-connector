@@ -1,0 +1,3159 @@
+# KAI ERP Connector
+## AI Agent Development Task List
+### Bedrock Scheduler Connector + MCP Tool
+
+```
+╔═══════════════════════════════════════════════════════════════════════════════╗
+║                                                                               ║
+║   MISSION: Build the KAI ERP Connector system from scratch                    ║
+║                                                                               ║
+║   TARGET: Production-ready Bedrock Scheduler with MCP integration             ║
+║                                                                               ║
+║   STACK: Python 3.11+ | FastAPI | DuckDB | MCP SDK | Docker                   ║
+║                                                                               ║
+╚═══════════════════════════════════════════════════════════════════════════════╝
+```
+
+---
+
+# Table of Contents
+
+1. [Project Overview](#1-project-overview)
+2. [Phase 0: Prerequisites & Setup](#2-phase-0-prerequisites--setup)
+3. [Phase 1: Core Infrastructure](#3-phase-1-core-infrastructure)
+4. [Phase 2: Bedrock Scheduler Connector](#4-phase-2-bedrock-scheduler-connector)
+5. [Phase 3: REST API Layer](#5-phase-3-rest-api-layer)
+6. [Phase 4: MCP Server Integration](#6-phase-4-mcp-server-integration)
+7. [Phase 5: Testing & Validation](#7-phase-5-testing--validation)
+8. [Phase 6: Deployment](#8-phase-6-deployment)
+9. [Appendix: File Templates](#9-appendix-file-templates)
+
+---
+
+# 1. Project Overview
+
+## 1.1 Architecture Diagram
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         WHAT YOU'RE BUILDING                                │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│   ┌─────────────┐     ┌─────────────┐                                       │
+│   │   Claude    │     │  Dashboard  │     Consumers                         │
+│   │   (MCP)     │     │  (REST)     │                                       │
+│   └──────┬──────┘     └──────┬──────┘                                       │
+│          │                   │                                              │
+│          ▼                   ▼                                              │
+│   ┌─────────────────────────────────────────────────────────────┐          │
+│   │                    KAI ERP CONNECTOR                        │          │
+│   │                                                             │          │
+│   │  ┌─────────────────────────────────────────────────────┐   │          │
+│   │  │  PHASE 4: MCP Server                                │   │          │
+│   │  │  • Tool: get_production_schedule                    │   │          │
+│   │  └─────────────────────────────────────────────────────┘   │          │
+│   │                           │                                 │          │
+│   │  ┌─────────────────────────────────────────────────────┐   │          │
+│   │  │  PHASE 3: REST API (FastAPI)                        │   │          │
+│   │  │  • GET /bedrock/schedule                            │   │          │
+│   │  └─────────────────────────────────────────────────────┘   │          │
+│   │                           │                                 │          │
+│   │  ┌─────────────────────────────────────────────────────┐   │          │
+│   │  │  PHASE 2: Bedrock Scheduler Connector               │   │          │
+│   │  │  • Query specs, joins, transformations              │   │          │
+│   │  └─────────────────────────────────────────────────────┘   │          │
+│   │                           │                                 │          │
+│   │  ┌─────────────────────────────────────────────────────┐   │          │
+│   │  │  PHASE 1: Core Infrastructure                       │   │          │
+│   │  │  • Auth, REST Engine, DuckDB Staging               │   │          │
+│   │  └─────────────────────────────────────────────────────┘   │          │
+│   │                                                             │          │
+│   └─────────────────────────────────────────────────────────────┘          │
+│                           │                                                 │
+│                           ▼                                                 │
+│                  ┌─────────────────┐                                        │
+│                  │  SyteLine 10    │                                        │
+│                  │  REST APIs      │                                        │
+│                  └─────────────────┘                                        │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+## 1.2 Final Project Structure
+
+```
+kai-erp-connector/
+├── pyproject.toml                 # Phase 0
+├── Dockerfile                     # Phase 6
+├── docker-compose.yml             # Phase 6
+├── .env.example                   # Phase 0
+├── README.md                      # Phase 6
+│
+├── src/
+│   └── kai_erp/
+│       ├── __init__.py            # Phase 0
+│       ├── config.py              # Phase 0
+│       │
+│       ├── core/                  # Phase 1
+│       │   ├── __init__.py
+│       │   ├── auth.py            # Task 1.1
+│       │   ├── http_client.py     # Task 1.2
+│       │   ├── rest_engine.py     # Task 1.3
+│       │   ├── staging.py         # Task 1.4
+│       │   └── exceptions.py      # Task 1.5
+│       │
+│       ├── connectors/            # Phase 2
+│       │   ├── __init__.py
+│       │   ├── base.py            # Task 2.1
+│       │   └── bedrock_ops.py     # Task 2.2
+│       │
+│       ├── models/                # Phase 2
+│       │   ├── __init__.py
+│       │   └── operations.py      # Task 2.3
+│       │
+│       ├── api/                   # Phase 3
+│       │   ├── __init__.py
+│       │   ├── main.py            # Task 3.1
+│       │   ├── dependencies.py    # Task 3.2
+│       │   └── routes/
+│       │       ├── __init__.py
+│       │       ├── bedrock.py     # Task 3.3
+│       │       └── health.py      # Task 3.4
+│       │
+│       └── mcp/                   # Phase 4
+│           ├── __init__.py
+│           ├── server.py          # Task 4.1
+│           ├── tools.py           # Task 4.2
+│           └── handlers.py        # Task 4.3
+│
+└── tests/                         # Phase 5
+    ├── __init__.py
+    ├── conftest.py                # Task 5.1
+    ├── test_core/
+    │   ├── test_auth.py           # Task 5.2
+    │   ├── test_rest_engine.py    # Task 5.3
+    │   └── test_staging.py        # Task 5.4
+    ├── test_connectors/
+    │   └── test_bedrock_ops.py    # Task 5.5
+    └── test_mcp/
+        └── test_tools.py          # Task 5.6
+```
+
+## 1.3 Dependencies Summary
+
+```toml
+# Core
+python = "^3.11"
+pydantic = "^2.5"
+pydantic-settings = "^2.1"
+httpx = "^0.25"
+duckdb = "^0.9"
+
+# API
+fastapi = "^0.104"
+uvicorn = "^0.24"
+
+# MCP
+mcp = "^1.0"
+
+# Testing
+pytest = "^7.4"
+pytest-asyncio = "^0.21"
+pytest-cov = "^4.1"
+respx = "^0.20"
+
+# Dev
+ruff = "^0.1"
+mypy = "^1.7"
+```
+
+---
+
+# 2. Phase 0: Prerequisites & Setup
+
+## Milestone: Project skeleton ready for development
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 0 CHECKLIST                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ □ Task 0.1: Create project directory structure                              │
+│ □ Task 0.2: Create pyproject.toml with all dependencies                     │
+│ □ Task 0.3: Create configuration module                                     │
+│ □ Task 0.4: Create .env.example template                                    │
+│ □ Task 0.5: Initialize all __init__.py files                                │
+│ □ Task 0.6: Verify environment setup                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EXIT CRITERIA:                                                              │
+│ ✓ `pip install -e .` succeeds                                               │
+│ ✓ `python -c "from kai_erp import config"` succeeds                         │
+│ ✓ All directories created                                                   │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 0.1: Create Project Directory Structure
+
+**Action:** Create all directories
+
+```bash
+mkdir -p kai-erp-connector/src/kai_erp/{core,connectors,models,api/routes,mcp}
+mkdir -p kai-erp-connector/tests/{test_core,test_connectors,test_mcp}
+cd kai-erp-connector
+```
+
+**Verification:** All directories exist
+
+---
+
+### Task 0.2: Create pyproject.toml
+
+**Action:** Create `pyproject.toml` in project root
+
+```toml
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "kai-erp-connector"
+version = "0.1.0"
+description = "KAI ERP Connector - SyteLine 10 CloudSuite data access for AI agents"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+authors = [
+    {name = "Kaspar IT", email = "it@kaspar.com"}
+]
+dependencies = [
+    "pydantic>=2.5.0",
+    "pydantic-settings>=2.1.0",
+    "httpx>=0.25.0",
+    "duckdb>=0.9.0",
+    "fastapi>=0.104.0",
+    "uvicorn[standard]>=0.24.0",
+    "mcp>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.21.0",
+    "pytest-cov>=4.1.0",
+    "respx>=0.20.0",
+    "ruff>=0.1.0",
+    "mypy>=1.7.0",
+]
+
+[project.scripts]
+kai-api = "kai_erp.api.main:run"
+kai-mcp = "kai_erp.mcp.server:run"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/kai_erp"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+testpaths = ["tests"]
+addopts = "-v --cov=kai_erp --cov-report=term-missing"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+```
+
+**Verification:** `pip install -e ".[dev]"` succeeds
+
+---
+
+### Task 0.3: Create Configuration Module
+
+**Action:** Create `src/kai_erp/config.py`
+
+```python
+"""
+KAI ERP Connector Configuration
+
+Loads settings from environment variables with validation.
+"""
+
+from functools import lru_cache
+from pydantic import Field, SecretStr
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    """Application settings loaded from environment."""
+    
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        case_sensitive=False,
+    )
+    
+    # SyteLine 10 REST API
+    sl10_base_url: str = Field(
+        ...,
+        description="SyteLine 10 CloudSuite base URL",
+        examples=["https://xxx.erpsl.inforcloudsuite.com"]
+    )
+    sl10_config_name: str = Field(
+        ...,
+        description="SyteLine configuration name",
+        examples=["COMPANY_TST"]
+    )
+    sl10_username: str = Field(
+        ...,
+        description="API username"
+    )
+    sl10_password: SecretStr = Field(
+        ...,
+        description="API password"
+    )
+    
+    # Token settings
+    token_refresh_minutes: int = Field(
+        default=55,
+        description="Refresh token before expiry (default 55 of 60 min)"
+    )
+    
+    # Volume thresholds
+    rest_preferred_max: int = Field(
+        default=2000,
+        description="Preferred max records via REST"
+    )
+    rest_hard_max: int = Field(
+        default=5000,
+        description="Hard max records via REST (error above)"
+    )
+    
+    # Server settings
+    api_host: str = Field(default="0.0.0.0")
+    api_port: int = Field(default=8100)
+    log_level: str = Field(default="INFO")
+    
+    # Feature flags
+    data_lake_enabled: bool = Field(
+        default=False,
+        description="Enable Data Lake queries (requires license)"
+    )
+    
+    @property
+    def sl10_token_url(self) -> str:
+        """URL for token acquisition."""
+        return (
+            f"{self.sl10_base_url}/IDORequestService/MGRestService.svc"
+            f"/json/token/{self.sl10_config_name}"
+        )
+    
+    @property
+    def sl10_ido_base_url(self) -> str:
+        """Base URL for IDO queries."""
+        return f"{self.sl10_base_url}/IDORequestService/MGRestService.svc/json"
+
+
+@lru_cache
+def get_settings() -> Settings:
+    """Get cached settings instance."""
+    return Settings()
+```
+
+**Verification:** Import succeeds (will fail without .env, which is expected)
+
+---
+
+### Task 0.4: Create .env.example
+
+**Action:** Create `.env.example` in project root
+
+```bash
+# SyteLine 10 REST API Configuration
+SL10_BASE_URL=https://xxx.erpsl.inforcloudsuite.com
+SL10_CONFIG_NAME=XXX_TST
+SL10_USERNAME=api_user
+SL10_PASSWORD=your_password_here
+
+# Token Settings
+TOKEN_REFRESH_MINUTES=55
+
+# Volume Thresholds
+REST_PREFERRED_MAX=2000
+REST_HARD_MAX=5000
+
+# Server Settings
+API_HOST=0.0.0.0
+API_PORT=8100
+LOG_LEVEL=INFO
+
+# Feature Flags
+DATA_LAKE_ENABLED=false
+```
+
+**Verification:** File exists
+
+---
+
+### Task 0.5: Initialize All __init__.py Files
+
+**Action:** Create all `__init__.py` files with appropriate exports
+
+**File:** `src/kai_erp/__init__.py`
+```python
+"""KAI ERP Connector - SyteLine 10 CloudSuite data access."""
+
+__version__ = "0.1.0"
+```
+
+**File:** `src/kai_erp/core/__init__.py`
+```python
+"""Core infrastructure components."""
+
+from kai_erp.core.auth import TokenManager
+from kai_erp.core.rest_engine import RestEngine
+from kai_erp.core.staging import StagingLayer
+from kai_erp.core.exceptions import (
+    KaiErpError,
+    AuthenticationError,
+    VolumeExceedsLimit,
+    IDOQueryError,
+)
+
+__all__ = [
+    "TokenManager",
+    "RestEngine", 
+    "StagingLayer",
+    "KaiErpError",
+    "AuthenticationError",
+    "VolumeExceedsLimit",
+    "IDOQueryError",
+]
+```
+
+**File:** `src/kai_erp/connectors/__init__.py`
+```python
+"""Business logic connectors."""
+
+from kai_erp.connectors.base import BaseConnector
+from kai_erp.connectors.bedrock_ops import BedrockOpsScheduler
+
+__all__ = ["BaseConnector", "BedrockOpsScheduler"]
+```
+
+**File:** `src/kai_erp/models/__init__.py`
+```python
+"""Data models."""
+
+from kai_erp.models.operations import ScheduledOperation, ScheduleResponse
+
+__all__ = ["ScheduledOperation", "ScheduleResponse"]
+```
+
+**File:** `src/kai_erp/api/__init__.py`
+```python
+"""REST API layer."""
+```
+
+**File:** `src/kai_erp/api/routes/__init__.py`
+```python
+"""API route modules."""
+```
+
+**File:** `src/kai_erp/mcp/__init__.py`
+```python
+"""MCP Server layer."""
+```
+
+**File:** `tests/__init__.py`
+```python
+"""Test suite."""
+```
+
+**File:** `tests/test_core/__init__.py`, `tests/test_connectors/__init__.py`, `tests/test_mcp/__init__.py`
+```python
+"""Test module."""
+```
+
+**Verification:** All files created
+
+---
+
+### Task 0.6: Verify Environment Setup
+
+**Action:** Run verification commands
+
+```bash
+# Install package in development mode
+pip install -e ".[dev]"
+
+# Verify imports work (config will fail without .env, that's OK)
+python -c "from kai_erp import __version__; print(f'Version: {__version__}')"
+
+# Verify pytest is available
+pytest --version
+
+# Verify ruff is available
+ruff --version
+```
+
+**Verification:** All commands succeed (config import may warn about missing .env)
+
+---
+
+# 3. Phase 1: Core Infrastructure
+
+## Milestone: REST API engine can fetch and join IDO data
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 1 CHECKLIST                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ □ Task 1.1: Token Manager (authentication)                                  │
+│ □ Task 1.2: HTTP Client (connection pooling, retries)                       │
+│ □ Task 1.3: REST Engine (parallel fetch, IDO queries)                       │
+│ □ Task 1.4: Staging Layer (DuckDB joins)                                    │
+│ □ Task 1.5: Custom Exceptions                                               │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EXIT CRITERIA:                                                              │
+│ ✓ Can acquire token from SL10                                               │
+│ ✓ Can fetch single IDO (SLItems)                                            │
+│ ✓ Can fetch multiple IDOs in parallel                                       │
+│ ✓ Can join results in DuckDB                                                │
+│ ✓ Token auto-refreshes before expiry                                        │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 1.1: Token Manager
+
+**Action:** Create `src/kai_erp/core/auth.py`
+
+**Requirements:**
+- Acquire token from SL10 REST API
+- Cache token with expiry tracking
+- Auto-refresh at configurable threshold (default 55 minutes)
+- Thread-safe token access
+- Handle authentication errors gracefully
+
+**Implementation:**
+
+```python
+"""
+Token Manager for SyteLine 10 REST API authentication.
+
+Handles token acquisition, caching, and automatic refresh.
+"""
+
+import asyncio
+from datetime import datetime, timedelta
+from typing import Optional
+import logging
+
+import httpx
+
+from kai_erp.config import Settings, get_settings
+from kai_erp.core.exceptions import AuthenticationError
+
+logger = logging.getLogger(__name__)
+
+
+class TokenManager:
+    """
+    Manages SyteLine 10 REST API authentication tokens.
+    
+    Features:
+    - Automatic token acquisition
+    - Expiry tracking with proactive refresh
+    - Thread-safe access via asyncio lock
+    - Configurable refresh threshold
+    
+    Usage:
+        manager = TokenManager()
+        token = await manager.get_token()
+        # Use token in Authorization header
+    """
+    
+    TOKEN_LIFETIME_MINUTES = 60  # SL10 tokens expire after 60 minutes
+    
+    def __init__(self, settings: Optional[Settings] = None):
+        self._settings = settings or get_settings()
+        self._token: Optional[str] = None
+        self._token_acquired_at: Optional[datetime] = None
+        self._lock = asyncio.Lock()
+    
+    @property
+    def _refresh_threshold(self) -> timedelta:
+        """Time after which token should be refreshed."""
+        return timedelta(minutes=self._settings.token_refresh_minutes)
+    
+    def _is_token_valid(self) -> bool:
+        """Check if current token is still valid."""
+        if self._token is None or self._token_acquired_at is None:
+            return False
+        
+        elapsed = datetime.utcnow() - self._token_acquired_at
+        return elapsed < self._refresh_threshold
+    
+    async def get_token(self) -> str:
+        """
+        Get a valid authentication token.
+        
+        Returns cached token if still valid, otherwise acquires new token.
+        Thread-safe via asyncio lock.
+        
+        Returns:
+            Valid authentication token string
+            
+        Raises:
+            AuthenticationError: If token acquisition fails
+        """
+        async with self._lock:
+            if self._is_token_valid():
+                return self._token  # type: ignore
+            
+            logger.info("Acquiring new SL10 authentication token")
+            self._token = await self._acquire_token()
+            self._token_acquired_at = datetime.utcnow()
+            logger.info("Token acquired successfully")
+            
+            return self._token
+    
+    async def _acquire_token(self) -> str:
+        """
+        Acquire new token from SL10 REST API.
+        
+        Returns:
+            New authentication token
+            
+        Raises:
+            AuthenticationError: If request fails or credentials invalid
+        """
+        async with httpx.AsyncClient() as client:
+            try:
+                response = await client.get(
+                    self._settings.sl10_token_url,
+                    headers={
+                        "userid": self._settings.sl10_username,
+                        "password": self._settings.sl10_password.get_secret_value(),
+                    },
+                    timeout=30.0,
+                )
+                
+                if response.status_code == 401:
+                    raise AuthenticationError(
+                        "Invalid credentials - check SL10_USERNAME and SL10_PASSWORD"
+                    )
+                
+                response.raise_for_status()
+                
+                data = response.json()
+                
+                # Response format: {"Message": "Success", "Token": "..."}
+                if isinstance(data, dict):
+                    if data.get("Message") == "Success" and "Token" in data:
+                        return data["Token"]
+                    else:
+                        raise AuthenticationError(
+                            f"Unexpected response format: {data.get('Message', 'No message')}"
+                        )
+                
+                # Alternative: token returned directly as string
+                if isinstance(data, str):
+                    return data
+                
+                raise AuthenticationError(f"Cannot parse token response: {type(data)}")
+                
+            except httpx.HTTPStatusError as e:
+                raise AuthenticationError(f"HTTP {e.response.status_code}: {e.response.text}")
+            except httpx.RequestError as e:
+                raise AuthenticationError(f"Request failed: {e}")
+    
+    async def invalidate(self) -> None:
+        """Force token refresh on next get_token() call."""
+        async with self._lock:
+            self._token = None
+            self._token_acquired_at = None
+            logger.info("Token invalidated")
+    
+    def get_auth_header(self) -> dict[str, str]:
+        """
+        Get Authorization header dict for requests.
+        
+        Note: Call get_token() first to ensure token is valid.
+        
+        Returns:
+            Dict with Authorization header
+        """
+        if self._token is None:
+            raise AuthenticationError("No token available - call get_token() first")
+        return {"Authorization": self._token}
+```
+
+**Verification:**
+```python
+# Test with actual credentials (requires .env)
+import asyncio
+from kai_erp.core.auth import TokenManager
+
+async def test():
+    manager = TokenManager()
+    token = await manager.get_token()
+    print(f"Token acquired: {token[:50]}...")
+    
+asyncio.run(test())
+```
+
+---
+
+### Task 1.2: HTTP Client
+
+**Action:** Create `src/kai_erp/core/http_client.py`
+
+**Requirements:**
+- Connection pooling for efficiency
+- Automatic retry with exponential backoff
+- Rate limit handling (429 responses)
+- Timeout configuration
+- Logging of requests/responses
+
+**Implementation:**
+
+```python
+"""
+HTTP Client with connection pooling and retry logic.
+
+Wraps httpx.AsyncClient with:
+- Connection pooling
+- Automatic retries with backoff
+- Rate limit handling
+- Request/response logging
+"""
+
+import asyncio
+from typing import Any, Optional
+import logging
+
+import httpx
+
+from kai_erp.core.exceptions import IDOQueryError
+
+logger = logging.getLogger(__name__)
+
+
+class HttpClient:
+    """
+    Async HTTP client with retry logic and connection pooling.
+    
+    Usage:
+        async with HttpClient() as client:
+            response = await client.get(url, headers=headers)
+    """
+    
+    DEFAULT_TIMEOUT = 60.0
+    MAX_RETRIES = 3
+    RETRY_BACKOFF_BASE = 2.0  # seconds
+    
+    def __init__(
+        self,
+        timeout: float = DEFAULT_TIMEOUT,
+        max_retries: int = MAX_RETRIES,
+    ):
+        self._timeout = timeout
+        self._max_retries = max_retries
+        self._client: Optional[httpx.AsyncClient] = None
+    
+    async def __aenter__(self) -> "HttpClient":
+        """Create client with connection pooling."""
+        self._client = httpx.AsyncClient(
+            timeout=httpx.Timeout(self._timeout),
+            limits=httpx.Limits(
+                max_keepalive_connections=20,
+                max_connections=100,
+            ),
+        )
+        return self
+    
+    async def __aexit__(self, *args: Any) -> None:
+        """Close client and release connections."""
+        if self._client:
+            await self._client.aclose()
+            self._client = None
+    
+    async def get(
+        self,
+        url: str,
+        headers: Optional[dict[str, str]] = None,
+        params: Optional[dict[str, Any]] = None,
+    ) -> httpx.Response:
+        """
+        GET request with automatic retry.
+        
+        Args:
+            url: Request URL
+            headers: Request headers
+            params: Query parameters
+            
+        Returns:
+            Response object
+            
+        Raises:
+            IDOQueryError: After all retries exhausted
+        """
+        if not self._client:
+            raise RuntimeError("Client not initialized - use 'async with' context")
+        
+        last_error: Optional[Exception] = None
+        
+        for attempt in range(self._max_retries):
+            try:
+                logger.debug(f"GET {url} (attempt {attempt + 1})")
+                
+                response = await self._client.get(
+                    url,
+                    headers=headers,
+                    params=params,
+                )
+                
+                # Handle rate limiting
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get("Retry-After", 60))
+                    logger.warning(f"Rate limited, waiting {retry_after}s")
+                    await asyncio.sleep(retry_after)
+                    continue
+                
+                # Handle auth errors (don't retry)
+                if response.status_code == 401:
+                    raise IDOQueryError("Authentication failed - token may be expired")
+                
+                response.raise_for_status()
+                return response
+                
+            except httpx.HTTPStatusError as e:
+                last_error = e
+                if e.response.status_code >= 500:
+                    # Server error - retry with backoff
+                    wait = self.RETRY_BACKOFF_BASE ** attempt
+                    logger.warning(f"Server error {e.response.status_code}, retrying in {wait}s")
+                    await asyncio.sleep(wait)
+                else:
+                    # Client error - don't retry
+                    raise IDOQueryError(f"HTTP {e.response.status_code}: {e.response.text}")
+                    
+            except httpx.RequestError as e:
+                last_error = e
+                wait = self.RETRY_BACKOFF_BASE ** attempt
+                logger.warning(f"Request error: {e}, retrying in {wait}s")
+                await asyncio.sleep(wait)
+        
+        raise IDOQueryError(f"Request failed after {self._max_retries} attempts: {last_error}")
+    
+    async def post(
+        self,
+        url: str,
+        headers: Optional[dict[str, str]] = None,
+        json: Optional[dict[str, Any]] = None,
+    ) -> httpx.Response:
+        """POST request with automatic retry (same logic as GET)."""
+        if not self._client:
+            raise RuntimeError("Client not initialized - use 'async with' context")
+        
+        last_error: Optional[Exception] = None
+        
+        for attempt in range(self._max_retries):
+            try:
+                logger.debug(f"POST {url} (attempt {attempt + 1})")
+                
+                response = await self._client.post(
+                    url,
+                    headers=headers,
+                    json=json,
+                )
+                
+                if response.status_code == 429:
+                    retry_after = int(response.headers.get("Retry-After", 60))
+                    logger.warning(f"Rate limited, waiting {retry_after}s")
+                    await asyncio.sleep(retry_after)
+                    continue
+                
+                if response.status_code == 401:
+                    raise IDOQueryError("Authentication failed - token may be expired")
+                
+                response.raise_for_status()
+                return response
+                
+            except httpx.HTTPStatusError as e:
+                last_error = e
+                if e.response.status_code >= 500:
+                    wait = self.RETRY_BACKOFF_BASE ** attempt
+                    logger.warning(f"Server error {e.response.status_code}, retrying in {wait}s")
+                    await asyncio.sleep(wait)
+                else:
+                    raise IDOQueryError(f"HTTP {e.response.status_code}: {e.response.text}")
+                    
+            except httpx.RequestError as e:
+                last_error = e
+                wait = self.RETRY_BACKOFF_BASE ** attempt
+                logger.warning(f"Request error: {e}, retrying in {wait}s")
+                await asyncio.sleep(wait)
+        
+        raise IDOQueryError(f"Request failed after {self._max_retries} attempts: {last_error}")
+```
+
+**Verification:**
+```python
+# Unit test with mocked responses
+import pytest
+from kai_erp.core.http_client import HttpClient
+
+@pytest.mark.asyncio
+async def test_client_context_manager():
+    async with HttpClient() as client:
+        assert client._client is not None
+    assert client._client is None
+```
+
+---
+
+### Task 1.3: REST Engine
+
+**Action:** Create `src/kai_erp/core/rest_engine.py`
+
+**Requirements:**
+- Parallel fetch of multiple IDOs
+- URL construction for IDO queries
+- Filter application
+- Property selection
+- Row cap handling
+- Integration with TokenManager and HttpClient
+
+**Implementation:**
+
+```python
+"""
+REST Engine for SyteLine 10 IDO queries.
+
+Provides parallel fetching of multiple IDOs with automatic
+token management and connection pooling.
+"""
+
+import asyncio
+from dataclasses import dataclass, field
+from typing import Any, Optional
+import logging
+
+from kai_erp.config import Settings, get_settings
+from kai_erp.core.auth import TokenManager
+from kai_erp.core.http_client import HttpClient
+from kai_erp.core.exceptions import IDOQueryError, VolumeExceedsLimit
+
+logger = logging.getLogger(__name__)
+
+
+@dataclass
+class IDOSpec:
+    """
+    Specification for an IDO query.
+    
+    Attributes:
+        name: IDO name (e.g., "SLJobs")
+        properties: List of property names to fetch
+        filter: SQL-style filter (e.g., "Stat='R'")
+        order_by: Property to sort by
+        row_cap: Maximum rows to return (0 = all, -1 = default 200)
+    """
+    name: str
+    properties: list[str]
+    filter: Optional[str] = None
+    order_by: Optional[str] = None
+    row_cap: int = -1  # Default: use server default (200)
+
+
+@dataclass
+class IDOResult:
+    """
+    Result from an IDO query.
+    
+    Attributes:
+        name: IDO name
+        items: List of row dicts
+        row_count: Number of rows returned
+    """
+    name: str
+    items: list[dict[str, Any]]
+    row_count: int = field(init=False)
+    
+    def __post_init__(self) -> None:
+        self.row_count = len(self.items)
+
+
+class RestEngine:
+    """
+    Engine for executing SyteLine 10 REST API queries.
+    
+    Features:
+    - Parallel IDO fetching
+    - Automatic token management
+    - Connection pooling
+    - Volume guards
+    
+    Usage:
+        engine = RestEngine()
+        results = await engine.fetch_parallel([
+            IDOSpec("SLJobs", ["Job", "Item", "Stat"]),
+            IDOSpec("SLItems", ["Item", "Description"]),
+        ])
+    """
+    
+    def __init__(
+        self,
+        settings: Optional[Settings] = None,
+        token_manager: Optional[TokenManager] = None,
+    ):
+        self._settings = settings or get_settings()
+        self._token_manager = token_manager or TokenManager(self._settings)
+    
+    def _build_url(self, spec: IDOSpec) -> str:
+        """Build IDO query URL from specification."""
+        base = self._settings.sl10_ido_base_url
+        props = ",".join(spec.properties)
+        
+        # Build query parameters
+        params = [f"props={props}"]
+        
+        if spec.filter:
+            params.append(f"filter={spec.filter}")
+        
+        if spec.order_by:
+            params.append(f"orderby={spec.order_by}")
+        
+        if spec.row_cap != -1:
+            params.append(f"rowcap={spec.row_cap}")
+        
+        query_string = "&".join(params)
+        
+        return f"{base}/{spec.name}/adv/?{query_string}"
+    
+    async def fetch_single(self, spec: IDOSpec) -> IDOResult:
+        """
+        Fetch a single IDO.
+        
+        Args:
+            spec: IDO query specification
+            
+        Returns:
+            IDOResult with fetched items
+            
+        Raises:
+            IDOQueryError: If query fails
+        """
+        token = await self._token_manager.get_token()
+        url = self._build_url(spec)
+        
+        logger.debug(f"Fetching IDO: {spec.name}")
+        
+        async with HttpClient() as client:
+            response = await client.get(
+                url,
+                headers={
+                    "Authorization": token,
+                    "Content-Type": "application/json",
+                },
+            )
+            
+            data = response.json()
+            
+            # Parse response
+            # Format: {"Items": [[{Name, Value}, ...], ...], "Message": "...", "MessageCode": 0}
+            if not isinstance(data, dict):
+                raise IDOQueryError(f"Unexpected response type: {type(data)}")
+            
+            if data.get("MessageCode") != 0:
+                raise IDOQueryError(f"IDO error: {data.get('Message', 'Unknown error')}")
+            
+            items = self._parse_items(data.get("Items", []), spec.properties)
+            
+            logger.debug(f"Fetched {len(items)} rows from {spec.name}")
+            
+            return IDOResult(name=spec.name, items=items)
+    
+    def _parse_items(
+        self, 
+        raw_items: list[list[dict[str, str]]], 
+        properties: list[str]
+    ) -> list[dict[str, Any]]:
+        """
+        Parse IDO response items into list of dicts.
+        
+        SL10 returns items as:
+        [[{"Name": "Job", "Value": "123"}, {"Name": "Item", "Value": "ABC"}], ...]
+        
+        We convert to:
+        [{"Job": "123", "Item": "ABC"}, ...]
+        """
+        result = []
+        
+        for raw_row in raw_items:
+            row = {}
+            for prop in raw_row:
+                if isinstance(prop, dict) and "Name" in prop:
+                    row[prop["Name"]] = prop.get("Value")
+            result.append(row)
+        
+        return result
+    
+    async def fetch_parallel(
+        self, 
+        specs: list[IDOSpec],
+        check_volume: bool = True,
+    ) -> dict[str, IDOResult]:
+        """
+        Fetch multiple IDOs in parallel.
+        
+        Args:
+            specs: List of IDO specifications
+            check_volume: If True, check volume limits
+            
+        Returns:
+            Dict mapping IDO name to result
+            
+        Raises:
+            VolumeExceedsLimit: If total rows exceed hard limit
+            IDOQueryError: If any query fails
+        """
+        token = await self._token_manager.get_token()
+        
+        async with HttpClient() as client:
+            # Create tasks for parallel execution
+            tasks = [
+                self._fetch_with_client(client, spec, token)
+                for spec in specs
+            ]
+            
+            # Execute all in parallel
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            
+            # Process results
+            output: dict[str, IDOResult] = {}
+            total_rows = 0
+            
+            for spec, result in zip(specs, results):
+                if isinstance(result, Exception):
+                    raise IDOQueryError(f"Failed to fetch {spec.name}: {result}")
+                
+                output[spec.name] = result
+                total_rows += result.row_count
+            
+            # Check volume limits
+            if check_volume and total_rows > self._settings.rest_hard_max:
+                raise VolumeExceedsLimit(
+                    f"Total rows ({total_rows}) exceeds limit ({self._settings.rest_hard_max}). "
+                    "Add filters to reduce results or use Data Lake for bulk queries."
+                )
+            
+            if check_volume and total_rows > self._settings.rest_preferred_max:
+                logger.warning(
+                    f"Total rows ({total_rows}) exceeds preferred limit "
+                    f"({self._settings.rest_preferred_max}). Consider adding filters."
+                )
+            
+            logger.info(f"Fetched {len(specs)} IDOs, {total_rows} total rows")
+            
+            return output
+    
+    async def _fetch_with_client(
+        self,
+        client: HttpClient,
+        spec: IDOSpec,
+        token: str,
+    ) -> IDOResult:
+        """Fetch single IDO using provided client and token."""
+        url = self._build_url(spec)
+        
+        response = await client.get(
+            url,
+            headers={
+                "Authorization": token,
+                "Content-Type": "application/json",
+            },
+        )
+        
+        data = response.json()
+        
+        if not isinstance(data, dict):
+            raise IDOQueryError(f"Unexpected response type for {spec.name}")
+        
+        if data.get("MessageCode") != 0:
+            raise IDOQueryError(f"IDO {spec.name} error: {data.get('Message')}")
+        
+        items = self._parse_items(data.get("Items", []), spec.properties)
+        
+        return IDOResult(name=spec.name, items=items)
+```
+
+**Verification:**
+```python
+# Integration test (requires credentials)
+import asyncio
+from kai_erp.core.rest_engine import RestEngine, IDOSpec
+
+async def test():
+    engine = RestEngine()
+    result = await engine.fetch_single(
+        IDOSpec("SLItems", ["Item", "Description"], row_cap=5)
+    )
+    print(f"Fetched {result.row_count} items")
+    for item in result.items[:3]:
+        print(f"  {item}")
+
+asyncio.run(test())
+```
+
+---
+
+### Task 1.4: Staging Layer (DuckDB)
+
+**Action:** Create `src/kai_erp/core/staging.py`
+
+**Requirements:**
+- Load IDO results into DuckDB tables
+- Execute SQL JOIN queries
+- Return results as list of dicts
+- Ephemeral database (in-memory)
+- Automatic cleanup
+
+**Implementation:**
+
+```python
+"""
+Staging Layer using DuckDB for in-memory data joins.
+
+Loads IDO results into temporary tables and executes
+SQL queries to join and transform data.
+"""
+
+from typing import Any
+import logging
+
+import duckdb
+
+from kai_erp.core.rest_engine import IDOResult
+from kai_erp.core.exceptions import IDOQueryError
+
+logger = logging.getLogger(__name__)
+
+
+class StagingLayer:
+    """
+    In-memory staging layer using DuckDB.
+    
+    Loads data from multiple IDO queries and joins them
+    using SQL queries.
+    
+    Usage:
+        staging = StagingLayer()
+        staging.load_results({
+            "SLJobs": jobs_result,
+            "SLItems": items_result,
+        })
+        rows = staging.execute_query('''
+            SELECT j.Job, j.Item, i.Description
+            FROM SLJobs j
+            LEFT JOIN SLItems i ON j.Item = i.Item
+        ''')
+    """
+    
+    def __init__(self):
+        self._conn: duckdb.DuckDBPyConnection | None = None
+        self._loaded_tables: set[str] = set()
+    
+    def __enter__(self) -> "StagingLayer":
+        """Create in-memory DuckDB connection."""
+        self._conn = duckdb.connect(":memory:")
+        self._loaded_tables = set()
+        return self
+    
+    def __exit__(self, *args: Any) -> None:
+        """Close connection and release memory."""
+        if self._conn:
+            self._conn.close()
+            self._conn = None
+        self._loaded_tables = set()
+    
+    def load_results(self, results: dict[str, IDOResult]) -> None:
+        """
+        Load multiple IDO results into staging tables.
+        
+        Args:
+            results: Dict mapping IDO name to result
+        """
+        for name, result in results.items():
+            self.load_single(name, result)
+    
+    def load_single(self, table_name: str, result: IDOResult) -> None:
+        """
+        Load single IDO result into staging table.
+        
+        Args:
+            table_name: Name for the staging table
+            result: IDO query result
+        """
+        if not self._conn:
+            raise RuntimeError("StagingLayer not initialized - use 'with' context")
+        
+        if not result.items:
+            # Create empty table with schema from first potential row
+            logger.debug(f"Creating empty table {table_name}")
+            self._conn.execute(f"CREATE TABLE {table_name} (dummy VARCHAR)")
+            self._loaded_tables.add(table_name)
+            return
+        
+        # Infer schema from first row
+        first_row = result.items[0]
+        columns = list(first_row.keys())
+        
+        # Create table
+        col_defs = ", ".join(f'"{col}" VARCHAR' for col in columns)
+        self._conn.execute(f"CREATE TABLE {table_name} ({col_defs})")
+        
+        # Insert data
+        placeholders = ", ".join(["?"] * len(columns))
+        insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
+        
+        for row in result.items:
+            values = [row.get(col) for col in columns]
+            self._conn.execute(insert_sql, values)
+        
+        self._loaded_tables.add(table_name)
+        logger.debug(f"Loaded {len(result.items)} rows into {table_name}")
+    
+    def execute_query(self, sql: str) -> list[dict[str, Any]]:
+        """
+        Execute SQL query and return results as list of dicts.
+        
+        Args:
+            sql: SQL query string
+            
+        Returns:
+            List of row dicts
+            
+        Raises:
+            IDOQueryError: If query fails
+        """
+        if not self._conn:
+            raise RuntimeError("StagingLayer not initialized - use 'with' context")
+        
+        try:
+            result = self._conn.execute(sql)
+            columns = [desc[0] for desc in result.description]
+            
+            rows = []
+            for row in result.fetchall():
+                rows.append(dict(zip(columns, row)))
+            
+            logger.debug(f"Query returned {len(rows)} rows")
+            return rows
+            
+        except duckdb.Error as e:
+            raise IDOQueryError(f"Staging query failed: {e}")
+    
+    @property
+    def loaded_tables(self) -> set[str]:
+        """Get set of currently loaded table names."""
+        return self._loaded_tables.copy()
+```
+
+**Verification:**
+```python
+# Unit test
+from kai_erp.core.staging import StagingLayer
+from kai_erp.core.rest_engine import IDOResult
+
+def test_staging():
+    jobs = IDOResult(
+        name="SLJobs",
+        items=[
+            {"Job": "J-001", "Item": "ITEM-A"},
+            {"Job": "J-002", "Item": "ITEM-B"},
+        ]
+    )
+    items = IDOResult(
+        name="SLItems", 
+        items=[
+            {"Item": "ITEM-A", "Description": "Item A Desc"},
+            {"Item": "ITEM-B", "Description": "Item B Desc"},
+        ]
+    )
+    
+    with StagingLayer() as staging:
+        staging.load_results({"SLJobs": jobs, "SLItems": items})
+        
+        results = staging.execute_query('''
+            SELECT j.Job, j.Item, i.Description
+            FROM SLJobs j
+            LEFT JOIN SLItems i ON j.Item = i.Item
+        ''')
+        
+        assert len(results) == 2
+        assert results[0]["Description"] == "Item A Desc"
+        print("Staging test passed!")
+
+test_staging()
+```
+
+---
+
+### Task 1.5: Custom Exceptions
+
+**Action:** Create `src/kai_erp/core/exceptions.py`
+
+**Implementation:**
+
+```python
+"""
+Custom exceptions for KAI ERP Connector.
+
+Provides specific exception types for different error scenarios.
+"""
+
+
+class KaiErpError(Exception):
+    """Base exception for all KAI ERP Connector errors."""
+    pass
+
+
+class AuthenticationError(KaiErpError):
+    """Raised when authentication fails."""
+    pass
+
+
+class IDOQueryError(KaiErpError):
+    """Raised when an IDO query fails."""
+    pass
+
+
+class VolumeExceedsLimit(KaiErpError):
+    """Raised when query would return too many rows."""
+    
+    def __init__(self, message: str, count: int = 0, limit: int = 0):
+        super().__init__(message)
+        self.count = count
+        self.limit = limit
+
+
+class ConnectorError(KaiErpError):
+    """Raised when a connector operation fails."""
+    pass
+
+
+class ConfigurationError(KaiErpError):
+    """Raised when configuration is invalid."""
+    pass
+```
+
+**Verification:** Import succeeds
+
+---
+
+# 4. Phase 2: Bedrock Scheduler Connector
+
+## Milestone: Complete connector that fetches and joins production data
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 2 CHECKLIST                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ □ Task 2.1: Base Connector class                                            │
+│ □ Task 2.2: Bedrock Ops Scheduler connector                                 │
+│ □ Task 2.3: Output models (Pydantic)                                        │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EXIT CRITERIA:                                                              │
+│ ✓ Can execute connector and get ScheduledOperation objects                  │
+│ ✓ Filters work (work_center, job)                                           │
+│ ✓ Percent complete calculated correctly                                     │
+│ ✓ Status (on_track/behind/complete) derived correctly                       │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 2.1: Base Connector Class
+
+**Action:** Create `src/kai_erp/connectors/base.py`
+
+**Implementation:**
+
+```python
+"""
+Base Connector class defining the interface for all connectors.
+
+Each connector encapsulates a specific data access pattern,
+defining what IDOs to fetch and how to join/transform them.
+"""
+
+from abc import ABC, abstractmethod
+from dataclasses import dataclass
+from datetime import datetime
+from enum import Enum
+from typing import Any, Generic, Optional, TypeVar
+
+from kai_erp.core.rest_engine import RestEngine, IDOSpec
+from kai_erp.core.staging import StagingLayer
+
+
+class DataSource(Enum):
+    """Data source used for query execution."""
+    REST_API = "rest_api"
+    DATA_LAKE = "data_lake"
+
+
+@dataclass
+class ConnectorResult(Generic[TypeVar("T")]):
+    """
+    Result from connector execution.
+    
+    Attributes:
+        data: List of result objects
+        source: Which data source was used
+        latency_ms: Query execution time in milliseconds
+        query_time: When the query was executed
+        filters_applied: Filters that were applied
+    """
+    data: list[Any]
+    source: DataSource
+    latency_ms: float
+    query_time: datetime
+    filters_applied: dict[str, Any]
+    
+    @property
+    def count(self) -> int:
+        """Number of results."""
+        return len(self.data)
+
+
+class BaseConnector(ABC):
+    """
+    Abstract base class for all KAI ERP Connectors.
+    
+    Subclasses must implement:
+    - get_ido_specs(): Define which IDOs to fetch
+    - get_join_query(): Define how to join the data
+    - transform_row(): Convert raw row to output model
+    
+    Optional overrides:
+    - estimate_volume(): Estimate result count for routing
+    - apply_filters(): Apply filter parameters to IDO specs
+    """
+    
+    def __init__(
+        self,
+        rest_engine: Optional[RestEngine] = None,
+    ):
+        self._rest_engine = rest_engine or RestEngine()
+    
+    @abstractmethod
+    def get_ido_specs(self, filters: dict[str, Any]) -> list[IDOSpec]:
+        """
+        Get IDO specifications for this connector.
+        
+        Args:
+            filters: User-provided filters
+            
+        Returns:
+            List of IDO specs to fetch
+        """
+        pass
+    
+    @abstractmethod
+    def get_join_query(self) -> str:
+        """
+        Get SQL query to join IDO results.
+        
+        The query should reference table names matching
+        the IDO names returned by get_ido_specs().
+        
+        Returns:
+            SQL query string
+        """
+        pass
+    
+    @abstractmethod
+    def transform_row(self, row: dict[str, Any]) -> Any:
+        """
+        Transform a raw result row into output model.
+        
+        Args:
+            row: Dict from staging query result
+            
+        Returns:
+            Output model instance
+        """
+        pass
+    
+    def estimate_volume(self, filters: dict[str, Any]) -> int:
+        """
+        Estimate number of results for given filters.
+        
+        Used for routing decisions (REST vs Data Lake).
+        Default implementation returns a safe estimate.
+        
+        Args:
+            filters: User-provided filters
+            
+        Returns:
+            Estimated row count
+        """
+        return 1000  # Conservative default
+    
+    async def execute(
+        self,
+        filters: Optional[dict[str, Any]] = None,
+    ) -> ConnectorResult:
+        """
+        Execute the connector query.
+        
+        Args:
+            filters: Optional filter parameters
+            
+        Returns:
+            ConnectorResult with transformed data
+        """
+        import time
+        start_time = time.perf_counter()
+        
+        filters = filters or {}
+        
+        # Get IDO specs with filters applied
+        specs = self.get_ido_specs(filters)
+        
+        # Fetch all IDOs in parallel
+        results = await self._rest_engine.fetch_parallel(specs)
+        
+        # Stage and join
+        with StagingLayer() as staging:
+            staging.load_results(results)
+            rows = staging.execute_query(self.get_join_query())
+        
+        # Transform to output models
+        data = [self.transform_row(row) for row in rows]
+        
+        # Apply post-fetch filters if needed
+        data = self._post_filter(data, filters)
+        
+        elapsed_ms = (time.perf_counter() - start_time) * 1000
+        
+        return ConnectorResult(
+            data=data,
+            source=DataSource.REST_API,
+            latency_ms=elapsed_ms,
+            query_time=datetime.utcnow(),
+            filters_applied=filters,
+        )
+    
+    def _post_filter(
+        self, 
+        data: list[Any], 
+        filters: dict[str, Any]
+    ) -> list[Any]:
+        """
+        Apply filters that couldn't be applied at IDO level.
+        
+        Override in subclass if needed.
+        
+        Args:
+            data: List of transformed objects
+            filters: User-provided filters
+            
+        Returns:
+            Filtered data
+        """
+        return data
+```
+
+**Verification:** Import succeeds
+
+---
+
+### Task 2.2: Bedrock Ops Scheduler Connector
+
+**Action:** Create `src/kai_erp/connectors/bedrock_ops.py`
+
+**Implementation:**
+
+```python
+"""
+Bedrock Operations Scheduler Connector.
+
+Fetches production schedule data for Bedrock Truck Beds,
+joining job, route, schedule, and item information.
+"""
+
+from datetime import datetime
+from typing import Any, Optional
+
+from kai_erp.connectors.base import BaseConnector
+from kai_erp.core.rest_engine import IDOSpec, RestEngine
+from kai_erp.models.operations import ScheduledOperation
+
+
+class BedrockOpsScheduler(BaseConnector):
+    """
+    Production schedule connector for Bedrock operations.
+    
+    Fetches and joins:
+    - SLJobs: Job headers
+    - SLJobroutes: Operations/routing
+    - SLJrtSchs: Schedule dates
+    - SLItems: Item descriptions
+    - SLWcs: Work center descriptions
+    
+    Usage:
+        connector = BedrockOpsScheduler()
+        result = await connector.execute(filters={"work_center": "WELD-01"})
+        for op in result.data:
+            print(f"{op.job}: {op.item_description} - {op.pct_complete}%")
+    """
+    
+    # Typical volume estimates
+    TYPICAL_ACTIVE_JOBS = 200
+    TYPICAL_OPS_PER_JOB = 4
+    
+    def __init__(self, rest_engine: Optional[RestEngine] = None):
+        super().__init__(rest_engine)
+    
+    def get_ido_specs(self, filters: dict[str, Any]) -> list[IDOSpec]:
+        """Build IDO specs with optional filters applied."""
+        
+        # Base job filter: Released jobs
+        job_filter = "Stat='R'"
+        
+        # Add job number filter if provided
+        if filters.get("job"):
+            job_filter = f"Job='{filters['job']}'"
+        
+        # Work center filter applies to jobroutes
+        jobroute_filter = None
+        if filters.get("work_center"):
+            jobroute_filter = f"Wc='{filters['work_center']}'"
+        
+        # Build specs
+        specs = [
+            IDOSpec(
+                name="SLJobs",
+                properties=[
+                    "Job", "Suffix", "Item", "QtyReleased", 
+                    "QtyComplete", "Stat", "Whse"
+                ],
+                filter=job_filter,
+                row_cap=0,  # All matching jobs
+            ),
+            IDOSpec(
+                name="SLJobroutes",
+                properties=[
+                    "Job", "Suffix", "OperNum", "Wc",
+                    "QtyComplete", "QtyScrapped"
+                ],
+                filter=jobroute_filter,
+                row_cap=0,
+            ),
+            IDOSpec(
+                name="SLJrtSchs",
+                properties=[
+                    "Job", "Suffix", "OperNum",
+                    "SchedStart", "SchedFinish"
+                ],
+                row_cap=0,
+            ),
+            IDOSpec(
+                name="SLItems",
+                properties=["Item", "Description"],
+                row_cap=0,
+            ),
+            IDOSpec(
+                name="SLWcs",
+                properties=["Wc", "Description"],
+                row_cap=0,
+            ),
+        ]
+        
+        return specs
+    
+    def get_join_query(self) -> str:
+        """SQL query to join all IDO data."""
+        return """
+            SELECT 
+                j.Job,
+                j.Suffix,
+                j.Item,
+                j.QtyReleased,
+                j.QtyComplete as JobQtyComplete,
+                j.Whse,
+                jr.OperNum,
+                jr.Wc,
+                jr.QtyComplete as OperQtyComplete,
+                jr.QtyScrapped,
+                js.SchedStart,
+                js.SchedFinish,
+                i.Description as ItemDescription,
+                wc.Description as WcDescription
+                
+            FROM SLJobs j
+            INNER JOIN SLJobroutes jr 
+                ON j.Job = jr.Job AND j.Suffix = jr.Suffix
+            LEFT JOIN SLJrtSchs js 
+                ON jr.Job = js.Job 
+                AND jr.Suffix = js.Suffix 
+                AND jr.OperNum = js.OperNum
+            LEFT JOIN SLItems i 
+                ON j.Item = i.Item
+            LEFT JOIN SLWcs wc 
+                ON jr.Wc = wc.Wc
+                
+            ORDER BY js.SchedStart NULLS LAST, j.Job, jr.OperNum
+        """
+    
+    def transform_row(self, row: dict[str, Any]) -> ScheduledOperation:
+        """Transform joined row into ScheduledOperation model."""
+        
+        # Calculate percent complete
+        qty_released = self._parse_float(row.get("QtyReleased"), 0)
+        oper_qty_complete = self._parse_float(row.get("OperQtyComplete"), 0)
+        
+        if qty_released > 0:
+            pct_complete = round((oper_qty_complete / qty_released) * 100, 1)
+        else:
+            pct_complete = 0.0
+        
+        # Determine status
+        sched_finish = self._parse_datetime(row.get("SchedFinish"))
+        status = self._determine_status(pct_complete, sched_finish)
+        
+        return ScheduledOperation(
+            job=row.get("Job", ""),
+            suffix=self._parse_int(row.get("Suffix"), 0),
+            item=row.get("Item", ""),
+            item_description=row.get("ItemDescription", ""),
+            operation_num=self._parse_int(row.get("OperNum"), 0),
+            work_center=row.get("Wc", ""),
+            work_center_description=row.get("WcDescription", ""),
+            qty_released=qty_released,
+            qty_complete=oper_qty_complete,
+            pct_complete=pct_complete,
+            sched_start=self._parse_datetime(row.get("SchedStart")),
+            sched_finish=sched_finish,
+            status=status,
+            warehouse=row.get("Whse", ""),
+        )
+    
+    def _determine_status(
+        self, 
+        pct_complete: float, 
+        sched_finish: Optional[datetime]
+    ) -> str:
+        """Determine operation status."""
+        if pct_complete >= 100:
+            return "complete"
+        
+        if sched_finish and sched_finish < datetime.utcnow():
+            return "behind"
+        
+        return "on_track"
+    
+    def _parse_float(self, value: Any, default: float) -> float:
+        """Safely parse float from various types."""
+        if value is None:
+            return default
+        try:
+            return float(value)
+        except (ValueError, TypeError):
+            return default
+    
+    def _parse_int(self, value: Any, default: int) -> int:
+        """Safely parse int from various types."""
+        if value is None:
+            return default
+        try:
+            return int(float(value))
+        except (ValueError, TypeError):
+            return default
+    
+    def _parse_datetime(self, value: Any) -> Optional[datetime]:
+        """Safely parse datetime from string."""
+        if value is None:
+            return None
+        if isinstance(value, datetime):
+            return value
+        try:
+            # SL10 format: "2024-12-09T06:00:00"
+            return datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        except (ValueError, TypeError):
+            return None
+    
+    def estimate_volume(self, filters: dict[str, Any]) -> int:
+        """Estimate result volume for routing decisions."""
+        base = self.TYPICAL_ACTIVE_JOBS * self.TYPICAL_OPS_PER_JOB  # ~800
+        
+        if filters.get("job"):
+            return self.TYPICAL_OPS_PER_JOB  # ~4
+        
+        if filters.get("work_center"):
+            return base // 10  # ~80
+        
+        return base
+    
+    def _post_filter(
+        self, 
+        data: list[ScheduledOperation], 
+        filters: dict[str, Any]
+    ) -> list[ScheduledOperation]:
+        """Apply filters that couldn't be done at IDO level."""
+        
+        # Filter out completed if not requested
+        if not filters.get("include_completed", False):
+            data = [op for op in data if op.status != "complete"]
+        
+        return data
+```
+
+**Verification:**
+```python
+# Integration test (requires credentials)
+import asyncio
+from kai_erp.connectors.bedrock_ops import BedrockOpsScheduler
+
+async def test():
+    connector = BedrockOpsScheduler()
+    result = await connector.execute(filters={"work_center": "WELD-01"})
+    print(f"Found {result.count} operations in {result.latency_ms:.0f}ms")
+    for op in result.data[:3]:
+        print(f"  {op.job}: {op.item_description} - {op.pct_complete}%")
+
+asyncio.run(test())
+```
+
+---
+
+### Task 2.3: Output Models
+
+**Action:** Create `src/kai_erp/models/operations.py`
+
+**Implementation:**
+
+```python
+"""
+Data models for production operations.
+
+Uses Pydantic for validation and serialization.
+"""
+
+from datetime import datetime
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+
+class ScheduledOperation(BaseModel):
+    """
+    A scheduled production operation.
+    
+    Represents a single operation (routing step) for a production job.
+    """
+    
+    job: str = Field(..., description="Job number")
+    suffix: int = Field(default=0, description="Job suffix")
+    item: str = Field(..., description="Item number being produced")
+    item_description: str = Field(default="", description="Item description")
+    operation_num: int = Field(..., description="Operation/routing step number")
+    work_center: str = Field(..., description="Work center code")
+    work_center_description: str = Field(default="", description="Work center name")
+    qty_released: float = Field(..., description="Quantity released to production")
+    qty_complete: float = Field(..., description="Quantity completed at this operation")
+    pct_complete: float = Field(..., description="Percent complete (0-100)")
+    sched_start: Optional[datetime] = Field(None, description="Scheduled start datetime")
+    sched_finish: Optional[datetime] = Field(None, description="Scheduled finish datetime")
+    status: str = Field(..., description="Status: on_track, behind, or complete")
+    warehouse: str = Field(default="", description="Warehouse code")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "job": "J-12345",
+                "suffix": 0,
+                "item": "BED-KING-BLK",
+                "item_description": "King Bed Frame - Black",
+                "operation_num": 20,
+                "work_center": "WELD-01",
+                "work_center_description": "Welding Station 1",
+                "qty_released": 50.0,
+                "qty_complete": 23.0,
+                "pct_complete": 46.0,
+                "sched_start": "2024-12-09T06:00:00",
+                "sched_finish": "2024-12-09T14:00:00",
+                "status": "on_track",
+                "warehouse": "MAIN"
+            }
+        }
+
+
+class ScheduleSummary(BaseModel):
+    """Summary statistics for a schedule query."""
+    
+    total_operations: int = Field(..., description="Total operations returned")
+    on_track: int = Field(default=0, description="Operations on schedule")
+    behind: int = Field(default=0, description="Operations behind schedule")
+    complete: int = Field(default=0, description="Completed operations")
+    work_centers: list[str] = Field(default_factory=list, description="Work centers included")
+
+
+class ScheduleResponse(BaseModel):
+    """
+    Full response from production schedule query.
+    
+    Includes operations list, summary, and metadata.
+    """
+    
+    operations: list[ScheduledOperation] = Field(..., description="List of operations")
+    summary: ScheduleSummary = Field(..., description="Summary statistics")
+    data_source: str = Field(..., description="Data source used")
+    query_time_ms: float = Field(..., description="Query execution time in ms")
+    filters_applied: dict = Field(default_factory=dict, description="Filters that were applied")
+    
+    @classmethod
+    def from_operations(
+        cls,
+        operations: list[ScheduledOperation],
+        data_source: str,
+        query_time_ms: float,
+        filters: dict,
+    ) -> "ScheduleResponse":
+        """Create response with auto-calculated summary."""
+        
+        summary = ScheduleSummary(
+            total_operations=len(operations),
+            on_track=sum(1 for op in operations if op.status == "on_track"),
+            behind=sum(1 for op in operations if op.status == "behind"),
+            complete=sum(1 for op in operations if op.status == "complete"),
+            work_centers=sorted(set(op.work_center for op in operations)),
+        )
+        
+        return cls(
+            operations=operations,
+            summary=summary,
+            data_source=data_source,
+            query_time_ms=query_time_ms,
+            filters_applied=filters,
+        )
+```
+
+**Verification:** Import and instantiate models
+
+---
+
+# 5. Phase 3: REST API Layer
+
+## Milestone: HTTP API serving production schedule data
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 3 CHECKLIST                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ □ Task 3.1: FastAPI application setup                                       │
+│ □ Task 3.2: Dependency injection                                            │
+│ □ Task 3.3: Bedrock routes                                                  │
+│ □ Task 3.4: Health check endpoint                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EXIT CRITERIA:                                                              │
+│ ✓ GET /health returns 200                                                   │
+│ ✓ GET /bedrock/schedule returns operations                                  │
+│ ✓ OpenAPI docs at /docs work                                                │
+│ ✓ Query parameters filter results                                           │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 3.1: FastAPI Application
+
+**Action:** Create `src/kai_erp/api/main.py`
+
+**Implementation:**
+
+```python
+"""
+FastAPI application for KAI ERP Connector REST API.
+"""
+
+import logging
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator
+
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from kai_erp.config import get_settings
+from kai_erp.api.routes import bedrock, health
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+)
+logger = logging.getLogger(__name__)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """Application lifespan handler."""
+    logger.info("KAI ERP Connector starting up")
+    yield
+    logger.info("KAI ERP Connector shutting down")
+
+
+def create_app() -> FastAPI:
+    """Create and configure FastAPI application."""
+    
+    settings = get_settings()
+    
+    app = FastAPI(
+        title="KAI ERP Connector",
+        description="SyteLine 10 CloudSuite data access API",
+        version="0.1.0",
+        lifespan=lifespan,
+    )
+    
+    # CORS middleware
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],  # Configure appropriately for production
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    
+    # Include routers
+    app.include_router(health.router, tags=["Health"])
+    app.include_router(bedrock.router, prefix="/bedrock", tags=["Bedrock"])
+    
+    return app
+
+
+# Application instance
+app = create_app()
+
+
+def run() -> None:
+    """Run the API server."""
+    import uvicorn
+    
+    settings = get_settings()
+    uvicorn.run(
+        "kai_erp.api.main:app",
+        host=settings.api_host,
+        port=settings.api_port,
+        reload=True,
+        log_level=settings.log_level.lower(),
+    )
+
+
+if __name__ == "__main__":
+    run()
+```
+
+**Verification:** `python -m kai_erp.api.main` starts server
+
+---
+
+### Task 3.2: Dependency Injection
+
+**Action:** Create `src/kai_erp/api/dependencies.py`
+
+**Implementation:**
+
+```python
+"""
+FastAPI dependency injection for shared resources.
+"""
+
+from functools import lru_cache
+from typing import Annotated
+
+from fastapi import Depends
+
+from kai_erp.config import Settings, get_settings
+from kai_erp.core.rest_engine import RestEngine
+from kai_erp.connectors.bedrock_ops import BedrockOpsScheduler
+
+
+@lru_cache
+def get_rest_engine() -> RestEngine:
+    """Get cached REST engine instance."""
+    return RestEngine()
+
+
+def get_bedrock_scheduler(
+    rest_engine: Annotated[RestEngine, Depends(get_rest_engine)]
+) -> BedrockOpsScheduler:
+    """Get Bedrock scheduler connector."""
+    return BedrockOpsScheduler(rest_engine)
+
+
+# Type aliases for dependency injection
+SettingsDep = Annotated[Settings, Depends(get_settings)]
+RestEngineDep = Annotated[RestEngine, Depends(get_rest_engine)]
+BedrockSchedulerDep = Annotated[BedrockOpsScheduler, Depends(get_bedrock_scheduler)]
+```
+
+**Verification:** Import succeeds
+
+---
+
+### Task 3.3: Bedrock Routes
+
+**Action:** Create `src/kai_erp/api/routes/bedrock.py`
+
+**Implementation:**
+
+```python
+"""
+Bedrock Truck Beds API routes.
+"""
+
+from typing import Optional
+
+from fastapi import APIRouter, HTTPException, Query
+
+from kai_erp.api.dependencies import BedrockSchedulerDep
+from kai_erp.core.exceptions import VolumeExceedsLimit, IDOQueryError
+from kai_erp.models.operations import ScheduleResponse
+
+router = APIRouter()
+
+
+@router.get(
+    "/schedule",
+    response_model=ScheduleResponse,
+    summary="Get Production Schedule",
+    description="""
+    Get current production schedule for Bedrock operations.
+    
+    Returns scheduled operations showing what's being manufactured,
+    where, and progress status.
+    
+    **Filters:**
+    - `work_center`: Filter to specific work center (e.g., WELD-01)
+    - `job`: Filter to specific job number
+    - `include_completed`: Include 100% complete operations
+    """,
+)
+async def get_schedule(
+    scheduler: BedrockSchedulerDep,
+    work_center: Optional[str] = Query(
+        None,
+        description="Work center code (e.g., 'WELD-01')",
+        examples=["WELD-01", "PAINT-01", "ASSY-01"],
+    ),
+    job: Optional[str] = Query(
+        None,
+        description="Job number",
+        examples=["J-12345"],
+    ),
+    include_completed: bool = Query(
+        False,
+        description="Include completed operations",
+    ),
+) -> ScheduleResponse:
+    """Get production schedule with optional filters."""
+    
+    filters = {
+        "work_center": work_center,
+        "job": job,
+        "include_completed": include_completed,
+    }
+    # Remove None values
+    filters = {k: v for k, v in filters.items() if v is not None}
+    
+    try:
+        result = await scheduler.execute(filters=filters)
+        
+        return ScheduleResponse.from_operations(
+            operations=result.data,
+            data_source=result.source.value,
+            query_time_ms=result.latency_ms,
+            filters=result.filters_applied,
+        )
+        
+    except VolumeExceedsLimit as e:
+        raise HTTPException(
+            status_code=400,
+            detail={
+                "error": "volume_exceeded",
+                "message": str(e),
+                "suggestion": "Add a work_center or job filter to reduce results.",
+            }
+        )
+    except IDOQueryError as e:
+        raise HTTPException(
+            status_code=502,
+            detail={
+                "error": "ido_query_failed",
+                "message": str(e),
+            }
+        )
+
+
+@router.get(
+    "/schedule/{job}",
+    response_model=ScheduleResponse,
+    summary="Get Schedule for Specific Job",
+)
+async def get_job_schedule(
+    scheduler: BedrockSchedulerDep,
+    job: str,
+    include_completed: bool = Query(False),
+) -> ScheduleResponse:
+    """Get schedule for a specific job number."""
+    
+    result = await scheduler.execute(
+        filters={
+            "job": job,
+            "include_completed": include_completed,
+        }
+    )
+    
+    if not result.data:
+        raise HTTPException(
+            status_code=404,
+            detail={"error": "not_found", "message": f"Job {job} not found"}
+        )
+    
+    return ScheduleResponse.from_operations(
+        operations=result.data,
+        data_source=result.source.value,
+        query_time_ms=result.latency_ms,
+        filters=result.filters_applied,
+    )
+```
+
+**Verification:** API endpoints work via curl or browser
+
+---
+
+### Task 3.4: Health Check
+
+**Action:** Create `src/kai_erp/api/routes/health.py`
+
+**Implementation:**
+
+```python
+"""
+Health check endpoints.
+"""
+
+from datetime import datetime
+
+from fastapi import APIRouter
+from pydantic import BaseModel
+
+from kai_erp import __version__
+
+router = APIRouter()
+
+
+class HealthResponse(BaseModel):
+    """Health check response."""
+    status: str
+    version: str
+    timestamp: datetime
+
+
+@router.get(
+    "/health",
+    response_model=HealthResponse,
+    summary="Health Check",
+)
+async def health_check() -> HealthResponse:
+    """Check if the service is healthy."""
+    return HealthResponse(
+        status="healthy",
+        version=__version__,
+        timestamp=datetime.utcnow(),
+    )
+```
+
+**Verification:** `curl http://localhost:8100/health` returns 200
+
+---
+
+# 6. Phase 4: MCP Server Integration
+
+## Milestone: AI agents can discover and use production schedule tool
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 4 CHECKLIST                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ □ Task 4.1: MCP Server setup                                                │
+│ □ Task 4.2: Tool definitions                                                │
+│ □ Task 4.3: Tool handlers                                                   │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EXIT CRITERIA:                                                              │
+│ ✓ MCP server starts and registers tools                                     │
+│ ✓ get_production_schedule tool discovered by Claude                         │
+│ ✓ Tool returns production data when called                                  │
+│ ✓ Error messages are AI-friendly                                            │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 4.1: MCP Server Setup
+
+**Action:** Create `src/kai_erp/mcp/server.py`
+
+**Implementation:**
+
+```python
+"""
+MCP Server for KAI ERP Connector.
+
+Exposes ERP data as tools that AI agents can discover and use.
+"""
+
+import asyncio
+import logging
+from typing import Any
+
+from mcp.server import Server
+from mcp.server.stdio import stdio_server
+from mcp.types import Tool, TextContent
+
+from kai_erp.config import get_settings
+from kai_erp.core.rest_engine import RestEngine
+from kai_erp.mcp.tools import TOOLS
+from kai_erp.mcp.handlers import handle_tool_call
+
+logger = logging.getLogger(__name__)
+
+# Create MCP server instance
+server = Server("kai-erp-connector")
+
+# Shared REST engine
+_rest_engine: RestEngine | None = None
+
+
+def get_engine() -> RestEngine:
+    """Get or create REST engine."""
+    global _rest_engine
+    if _rest_engine is None:
+        _rest_engine = RestEngine()
+    return _rest_engine
+
+
+@server.list_tools()
+async def list_tools() -> list[Tool]:
+    """List available tools for AI discovery."""
+    logger.info(f"Tool discovery: returning {len(TOOLS)} tools")
+    return TOOLS
+
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict[str, Any]) -> list[TextContent]:
+    """Handle tool calls from AI agents."""
+    logger.info(f"Tool call: {name} with args: {arguments}")
+    
+    try:
+        result = await handle_tool_call(
+            tool_name=name,
+            arguments=arguments,
+            rest_engine=get_engine(),
+        )
+        
+        return [TextContent(type="text", text=result)]
+        
+    except Exception as e:
+        logger.error(f"Tool call failed: {e}")
+        error_msg = f"Error executing {name}: {str(e)}"
+        return [TextContent(type="text", text=error_msg)]
+
+
+async def run_server() -> None:
+    """Run the MCP server."""
+    logger.info("Starting KAI ERP Connector MCP Server")
+    
+    async with stdio_server() as (read_stream, write_stream):
+        await server.run(
+            read_stream,
+            write_stream,
+            server.create_initialization_options(),
+        )
+
+
+def run() -> None:
+    """Entry point for MCP server."""
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    )
+    asyncio.run(run_server())
+
+
+if __name__ == "__main__":
+    run()
+```
+
+**Verification:** Server starts without errors
+
+---
+
+### Task 4.2: Tool Definitions
+
+**Action:** Create `src/kai_erp/mcp/tools.py`
+
+**Implementation:**
+
+```python
+"""
+MCP Tool definitions for KAI ERP Connector.
+
+Each tool is designed for AI agent discoverability with
+clear descriptions and typed parameters.
+"""
+
+from mcp.types import Tool
+
+
+PRODUCTION_SCHEDULE_TOOL = Tool(
+    name="get_production_schedule",
+    description="""Get current production schedule for Bedrock manufacturing operations.
+
+Returns scheduled operations showing what's being manufactured, where, and progress status.
+
+USE THIS WHEN:
+• User asks what's being manufactured or produced
+• User asks about production status or progress
+• User asks what's scheduled for a work center
+• User asks about job completion percentages
+• User asks what's running on the shop floor
+
+DON'T USE FOR:
+• Sales orders (use get_open_orders instead)
+• Customer information (use search_customers instead)
+• Inventory levels (use get_inventory_status instead)
+
+COMMON WORK CENTERS:
+WELD-01, WELD-02, PAINT-01, ASSY-01, PACK-01
+
+EXAMPLES:
+• "What's running in welding?" → work_center: "WELD-01"
+• "Status of job J-12345?" → job: "J-12345"
+• "What's behind schedule?" → (no filters, check status in results)
+""",
+    inputSchema={
+        "type": "object",
+        "properties": {
+            "work_center": {
+                "type": "string",
+                "description": "Work center code (e.g., 'WELD-01'). Leave empty for all work centers."
+            },
+            "job": {
+                "type": "string",
+                "description": "Job number (e.g., 'J-12345'). Leave empty for all jobs."
+            },
+            "include_completed": {
+                "type": "boolean",
+                "description": "Include operations that are 100% complete. Default: false.",
+                "default": False
+            }
+        },
+        "required": []
+    }
+)
+
+
+# List of all tools to register
+TOOLS = [
+    PRODUCTION_SCHEDULE_TOOL,
+]
+```
+
+**Verification:** Import succeeds, TOOLS list has one item
+
+---
+
+### Task 4.3: Tool Handlers
+
+**Action:** Create `src/kai_erp/mcp/handlers.py`
+
+**Implementation:**
+
+```python
+"""
+Tool handlers for MCP server.
+
+Each handler bridges MCP tool calls to connector execution,
+formatting results for AI consumption.
+"""
+
+import json
+from typing import Any
+
+from kai_erp.core.rest_engine import RestEngine
+from kai_erp.core.exceptions import VolumeExceedsLimit, IDOQueryError
+from kai_erp.connectors.bedrock_ops import BedrockOpsScheduler
+
+
+async def handle_tool_call(
+    tool_name: str,
+    arguments: dict[str, Any],
+    rest_engine: RestEngine,
+) -> str:
+    """
+    Route tool call to appropriate handler.
+    
+    Args:
+        tool_name: Name of the tool to execute
+        arguments: Tool arguments from AI
+        rest_engine: Shared REST engine instance
+        
+    Returns:
+        JSON string result for AI consumption
+    """
+    handlers = {
+        "get_production_schedule": handle_production_schedule,
+    }
+    
+    handler = handlers.get(tool_name)
+    if not handler:
+        return json.dumps({
+            "error": "unknown_tool",
+            "message": f"Tool '{tool_name}' not found. Available tools: {list(handlers.keys())}"
+        })
+    
+    return await handler(arguments, rest_engine)
+
+
+async def handle_production_schedule(
+    arguments: dict[str, Any],
+    rest_engine: RestEngine,
+) -> str:
+    """
+    Handle get_production_schedule tool call.
+    
+    Args:
+        arguments: Tool arguments (work_center, job, include_completed)
+        rest_engine: REST engine for data fetching
+        
+    Returns:
+        JSON string with operations and summary
+    """
+    # Build filters from arguments
+    filters = {}
+    
+    if arguments.get("work_center"):
+        filters["work_center"] = arguments["work_center"]
+    
+    if arguments.get("job"):
+        filters["job"] = arguments["job"]
+    
+    filters["include_completed"] = arguments.get("include_completed", False)
+    
+    try:
+        # Execute connector
+        connector = BedrockOpsScheduler(rest_engine)
+        result = await connector.execute(filters=filters)
+        
+        # Format for AI consumption
+        operations = []
+        for op in result.data:
+            operations.append({
+                "job": op.job,
+                "item": op.item,
+                "description": op.item_description,
+                "work_center": op.work_center,
+                "work_center_name": op.work_center_description,
+                "qty_released": op.qty_released,
+                "qty_complete": op.qty_complete,
+                "percent_complete": op.pct_complete,
+                "scheduled_finish": op.sched_finish.isoformat() if op.sched_finish else None,
+                "status": op.status,
+            })
+        
+        # Build summary
+        on_track = sum(1 for op in result.data if op.status == "on_track")
+        behind = sum(1 for op in result.data if op.status == "behind")
+        complete = sum(1 for op in result.data if op.status == "complete")
+        work_centers = sorted(set(op.work_center for op in result.data))
+        
+        response = {
+            "operations": operations,
+            "summary": {
+                "total": len(operations),
+                "on_track": on_track,
+                "behind": behind,
+                "complete": complete,
+                "work_centers": work_centers,
+            },
+            "metadata": {
+                "data_source": result.source.value,
+                "query_time_ms": round(result.latency_ms, 1),
+                "filters_applied": result.filters_applied,
+            }
+        }
+        
+        return json.dumps(response, indent=2, default=str)
+        
+    except VolumeExceedsLimit as e:
+        return json.dumps({
+            "error": "too_many_results",
+            "message": str(e),
+            "suggestion": "Try adding a work_center or job filter to narrow the results.",
+        })
+        
+    except IDOQueryError as e:
+        return json.dumps({
+            "error": "query_failed",
+            "message": str(e),
+            "suggestion": "There may be a temporary issue with the ERP system. Try again in a moment.",
+        })
+        
+    except Exception as e:
+        return json.dumps({
+            "error": "unexpected_error",
+            "message": f"An unexpected error occurred: {str(e)}",
+        })
+```
+
+**Verification:** Import succeeds
+
+---
+
+# 7. Phase 5: Testing & Validation
+
+## Milestone: Comprehensive test coverage
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 5 CHECKLIST                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ □ Task 5.1: Test fixtures (conftest.py)                                     │
+│ □ Task 5.2: Auth tests                                                      │
+│ □ Task 5.3: REST engine tests                                               │
+│ □ Task 5.4: Staging tests                                                   │
+│ □ Task 5.5: Connector tests                                                 │
+│ □ Task 5.6: MCP tool tests                                                  │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EXIT CRITERIA:                                                              │
+│ ✓ All tests pass                                                            │
+│ ✓ Coverage > 80%                                                            │
+│ ✓ No critical bugs                                                          │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 5.1: Test Fixtures
+
+**Action:** Create `tests/conftest.py`
+
+**Implementation:**
+
+```python
+"""
+Pytest fixtures for KAI ERP Connector tests.
+"""
+
+import pytest
+from unittest.mock import AsyncMock, MagicMock
+
+from kai_erp.config import Settings
+from kai_erp.core.rest_engine import IDOResult
+
+
+@pytest.fixture
+def mock_settings():
+    """Mock settings for testing."""
+    return Settings(
+        sl10_base_url="https://test.example.com",
+        sl10_config_name="TEST_CFG",
+        sl10_username="test_user",
+        sl10_password="test_pass",
+    )
+
+
+@pytest.fixture
+def sample_jobs_result():
+    """Sample SLJobs IDO result."""
+    return IDOResult(
+        name="SLJobs",
+        items=[
+            {"Job": "J-001", "Suffix": "0", "Item": "ITEM-A", "QtyReleased": "100", "QtyComplete": "50", "Stat": "R", "Whse": "MAIN"},
+            {"Job": "J-002", "Suffix": "0", "Item": "ITEM-B", "QtyReleased": "200", "QtyComplete": "200", "Stat": "R", "Whse": "MAIN"},
+        ]
+    )
+
+
+@pytest.fixture
+def sample_jobroutes_result():
+    """Sample SLJobroutes IDO result."""
+    return IDOResult(
+        name="SLJobroutes",
+        items=[
+            {"Job": "J-001", "Suffix": "0", "OperNum": "10", "Wc": "WELD-01", "QtyComplete": "50", "QtyScrapped": "0"},
+            {"Job": "J-001", "Suffix": "0", "OperNum": "20", "Wc": "PAINT-01", "QtyComplete": "25", "QtyScrapped": "0"},
+            {"Job": "J-002", "Suffix": "0", "OperNum": "10", "Wc": "WELD-01", "QtyComplete": "200", "QtyScrapped": "0"},
+        ]
+    )
+
+
+@pytest.fixture
+def sample_items_result():
+    """Sample SLItems IDO result."""
+    return IDOResult(
+        name="SLItems",
+        items=[
+            {"Item": "ITEM-A", "Description": "Item A Description"},
+            {"Item": "ITEM-B", "Description": "Item B Description"},
+        ]
+    )
+
+
+@pytest.fixture
+def sample_wcs_result():
+    """Sample SLWcs IDO result."""
+    return IDOResult(
+        name="SLWcs",
+        items=[
+            {"Wc": "WELD-01", "Description": "Welding Station 1"},
+            {"Wc": "PAINT-01", "Description": "Paint Booth 1"},
+        ]
+    )
+
+
+@pytest.fixture
+def sample_jrtschs_result():
+    """Sample SLJrtSchs IDO result."""
+    return IDOResult(
+        name="SLJrtSchs",
+        items=[
+            {"Job": "J-001", "Suffix": "0", "OperNum": "10", "SchedStart": "2024-12-09T06:00:00", "SchedFinish": "2024-12-09T14:00:00"},
+            {"Job": "J-001", "Suffix": "0", "OperNum": "20", "SchedStart": "2024-12-09T14:00:00", "SchedFinish": "2024-12-09T22:00:00"},
+            {"Job": "J-002", "Suffix": "0", "OperNum": "10", "SchedStart": "2024-12-08T06:00:00", "SchedFinish": "2024-12-08T14:00:00"},
+        ]
+    )
+```
+
+---
+
+### Task 5.2-5.6: Test Files
+
+**Action:** Create test files for each module
+
+Each test file should:
+1. Test normal operation
+2. Test error cases
+3. Test edge cases
+4. Use mocks for external dependencies
+
+Example test structure:
+
+```python
+# tests/test_core/test_staging.py
+"""Tests for staging layer."""
+
+import pytest
+from kai_erp.core.staging import StagingLayer
+from kai_erp.core.rest_engine import IDOResult
+
+
+class TestStagingLayer:
+    """Tests for StagingLayer class."""
+    
+    def test_load_single_result(self, sample_jobs_result):
+        """Test loading a single IDO result."""
+        with StagingLayer() as staging:
+            staging.load_single("jobs", sample_jobs_result)
+            assert "jobs" in staging.loaded_tables
+    
+    def test_execute_simple_query(self, sample_jobs_result):
+        """Test executing a simple SQL query."""
+        with StagingLayer() as staging:
+            staging.load_single("jobs", sample_jobs_result)
+            results = staging.execute_query("SELECT * FROM jobs")
+            assert len(results) == 2
+    
+    def test_join_query(self, sample_jobs_result, sample_items_result):
+        """Test joining two tables."""
+        with StagingLayer() as staging:
+            staging.load_results({
+                "SLJobs": sample_jobs_result,
+                "SLItems": sample_items_result,
+            })
+            results = staging.execute_query('''
+                SELECT j.Job, j.Item, i.Description
+                FROM SLJobs j
+                LEFT JOIN SLItems i ON j.Item = i.Item
+            ''')
+            assert len(results) == 2
+            assert results[0]["Description"] == "Item A Description"
+```
+
+---
+
+# 8. Phase 6: Deployment
+
+## Milestone: Production-ready deployment
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│ PHASE 6 CHECKLIST                                                           │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ □ Task 6.1: Dockerfile                                                      │
+│ □ Task 6.2: Docker Compose                                                  │
+│ □ Task 6.3: README documentation                                            │
+│ □ Task 6.4: MCP configuration for Claude Desktop                            │
+├─────────────────────────────────────────────────────────────────────────────┤
+│ EXIT CRITERIA:                                                              │
+│ ✓ docker compose up starts all services                                     │
+│ ✓ API accessible at configured port                                         │
+│ ✓ MCP server connects to Claude Desktop                                     │
+│ ✓ Documentation complete                                                    │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### Task 6.1: Dockerfile
+
+**Action:** Create `Dockerfile`
+
+```dockerfile
+# Build stage
+FROM python:3.11-slim as builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN pip install --no-cache-dir hatch
+
+# Copy project files
+COPY pyproject.toml README.md ./
+COPY src/ src/
+
+# Build wheel
+RUN hatch build -t wheel
+
+
+# Runtime stage
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Copy wheel from builder
+COPY --from=builder /app/dist/*.whl .
+
+# Install package
+RUN pip install --no-cache-dir *.whl && rm *.whl
+
+# Create non-root user
+RUN useradd -m -u 1000 kai
+USER kai
+
+# Expose port
+EXPOSE 8100
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD python -c "import httpx; httpx.get('http://localhost:8100/health').raise_for_status()"
+
+# Run API server
+CMD ["kai-api"]
+```
+
+---
+
+### Task 6.2: Docker Compose
+
+**Action:** Create `docker-compose.yml`
+
+```yaml
+version: '3.8'
+
+services:
+  kai-api:
+    build: .
+    container_name: kai-erp-api
+    ports:
+      - "${API_PORT:-8100}:8100"
+    environment:
+      - SL10_BASE_URL=${SL10_BASE_URL}
+      - SL10_CONFIG_NAME=${SL10_CONFIG_NAME}
+      - SL10_USERNAME=${SL10_USERNAME}
+      - SL10_PASSWORD=${SL10_PASSWORD}
+      - API_HOST=0.0.0.0
+      - API_PORT=8100
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8100/health').raise_for_status()"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+```
+
+---
+
+### Task 6.3: README
+
+**Action:** Create `README.md`
+
+```markdown
+# KAI ERP Connector
+
+SyteLine 10 CloudSuite data access for AI agents and dashboards.
+
+## Quick Start
+
+1. Copy `.env.example` to `.env` and configure credentials
+2. Start with Docker: `docker compose up -d`
+3. Access API at `http://localhost:8100`
+4. View docs at `http://localhost:8100/docs`
+
+## API Endpoints
+
+- `GET /health` - Health check
+- `GET /bedrock/schedule` - Production schedule
+
+## MCP Integration
+
+Add to Claude Desktop config:
+
+```json
+{
+  "mcpServers": {
+    "kai-erp": {
+      "command": "python",
+      "args": ["-m", "kai_erp.mcp.server"],
+      "env": {
+        "SL10_BASE_URL": "...",
+        "SL10_CONFIG_NAME": "...",
+        "SL10_USERNAME": "...",
+        "SL10_PASSWORD": "..."
+      }
+    }
+  }
+}
+```
+
+## Development
+
+```bash
+pip install -e ".[dev]"
+pytest
+ruff check src/
+```
+```
+
+---
+
+### Task 6.4: Claude Desktop MCP Configuration
+
+**Action:** Document MCP configuration for Claude Desktop
+
+**File:** Create config snippet in `mcp-config.json`
+
+```json
+{
+  "mcpServers": {
+    "kai-erp": {
+      "command": "python",
+      "args": ["-m", "kai_erp.mcp.server"],
+      "cwd": "/path/to/kai-erp-connector",
+      "env": {
+        "SL10_BASE_URL": "https://xxx.erpsl.inforcloudsuite.com",
+        "SL10_CONFIG_NAME": "XXX_TST",
+        "SL10_USERNAME": "api_user",
+        "SL10_PASSWORD": "your_password"
+      }
+    }
+  }
+}
+```
+
+---
+
+# 9. Appendix: Summary Checklist
+
+## Complete Task Checklist
+
+```
+PHASE 0: PREREQUISITES & SETUP
+├── □ 0.1 Create project directory structure
+├── □ 0.2 Create pyproject.toml
+├── □ 0.3 Create config.py
+├── □ 0.4 Create .env.example
+├── □ 0.5 Initialize __init__.py files
+└── □ 0.6 Verify environment setup
+
+PHASE 1: CORE INFRASTRUCTURE
+├── □ 1.1 Token Manager (auth.py)
+├── □ 1.2 HTTP Client (http_client.py)
+├── □ 1.3 REST Engine (rest_engine.py)
+├── □ 1.4 Staging Layer (staging.py)
+└── □ 1.5 Custom Exceptions (exceptions.py)
+
+PHASE 2: BEDROCK SCHEDULER CONNECTOR
+├── □ 2.1 Base Connector class (base.py)
+├── □ 2.2 Bedrock Ops Scheduler (bedrock_ops.py)
+└── □ 2.3 Output Models (operations.py)
+
+PHASE 3: REST API LAYER
+├── □ 3.1 FastAPI application (main.py)
+├── □ 3.2 Dependency injection (dependencies.py)
+├── □ 3.3 Bedrock routes (routes/bedrock.py)
+└── □ 3.4 Health check (routes/health.py)
+
+PHASE 4: MCP SERVER INTEGRATION
+├── □ 4.1 MCP Server setup (server.py)
+├── □ 4.2 Tool definitions (tools.py)
+└── □ 4.3 Tool handlers (handlers.py)
+
+PHASE 5: TESTING & VALIDATION
+├── □ 5.1 Test fixtures (conftest.py)
+├── □ 5.2 Auth tests
+├── □ 5.3 REST engine tests
+├── □ 5.4 Staging tests
+├── □ 5.5 Connector tests
+└── □ 5.6 MCP tool tests
+
+PHASE 6: DEPLOYMENT
+├── □ 6.1 Dockerfile
+├── □ 6.2 Docker Compose
+├── □ 6.3 README documentation
+└── □ 6.4 MCP configuration
+```
+
+---
+
+## Success Metrics
+
+| Metric | Target | Verification |
+|--------|--------|--------------|
+| Token acquisition | < 2 sec | Time API call |
+| Single IDO fetch | < 500 ms | Time API call |
+| Full schedule query | < 2 sec | Time connector |
+| Test coverage | > 80% | pytest --cov |
+| All tests pass | 100% | pytest exit code |
+| Container startup | < 30 sec | docker compose up |
+| Health check | 200 OK | curl /health |
+| MCP tool discovery | Works | Claude Desktop |
+
+---
+
+*End of AI Agent Task List*
