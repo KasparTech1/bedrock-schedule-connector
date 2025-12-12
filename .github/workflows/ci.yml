@@ -103,7 +103,7 @@ jobs:
         run: uv sync --all-extras
 
       - name: Run Bandit security scanner
-        run: uv run bandit -r src/ -c pyproject.toml || true
+        run: uv run bandit -r src/ -c pyproject.toml
 
       - name: Run Gitleaks secret scanner
         uses: gitleaks/gitleaks-action@v2

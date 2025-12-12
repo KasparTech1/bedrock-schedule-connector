@@ -27,7 +27,7 @@ services:
       
       # Server
       - HOST=0.0.0.0
-      - PORT=8100
+      - API_PORT=8100
       
       # CORS (staging URLs)
       - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,https://staging.your-domain.com
