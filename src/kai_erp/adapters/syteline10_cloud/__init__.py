@@ -1,31 +1,50 @@
 """
-Mongoose REST API Client
-========================
-
-Client for accessing SyteLine/CSI data via ION API and Mongoose REST Service.
+Bedrock Scheduler adapter for SyteLine 10 Cloud.
 """
 
+from .scheduler import BedrockScheduler
 from .mongoose_client import MongooseClient, MongooseConfig
-from .scheduler import (
-    BedrockScheduler,
+
+# Export models for advanced usage
+from .models import (
+    JobOperation,
+    Job,
+    ScheduleOverview,
     Customer,
     CustomerSearchResult,
-    FlowOptimizerResult,
-    Job,
-    JobOperation,
     OpenOrderLine,
-    ScheduleOverview,
+    FlowOptimizerResult,
+    OrderAvailabilityLine,
+    OrderAvailabilityResult,
+)
+
+# Export services for direct usage (optional)
+from .services import (
+    ScheduleService,
+    CustomerService,
+    FlowOptimizerService,
+    OrderAvailabilityService,
 )
 
 __all__ = [
+    # Main facade
+    "BedrockScheduler",
+    # Client
     "MongooseClient",
     "MongooseConfig",
-    "BedrockScheduler",
+    # Models
+    "JobOperation",
+    "Job",
+    "ScheduleOverview",
     "Customer",
     "CustomerSearchResult",
-    "FlowOptimizerResult",
-    "Job",
-    "JobOperation",
     "OpenOrderLine",
-    "ScheduleOverview",
+    "FlowOptimizerResult",
+    "OrderAvailabilityLine",
+    "OrderAvailabilityResult",
+    # Services (for advanced usage)
+    "ScheduleService",
+    "CustomerService",
+    "FlowOptimizerService",
+    "OrderAvailabilityService",
 ]

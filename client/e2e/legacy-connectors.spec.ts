@@ -174,6 +174,7 @@ test.describe('Legacy Connectors Page', () => {
 
     test('should filter product lines by product line code', async ({ page }) => {
       await page.click('button[role="tab"]:has-text("Try It")');
+      await page.waitForTimeout(500); // Wait for tab to render
       
       // Mock filtered response
       await page.route('**/api/legacy/global-shop/product-lines?product_line=ELEC*', async (route) => {
@@ -189,8 +190,10 @@ test.describe('Legacy Connectors Page', () => {
         });
       });
 
-      // Enter product line filter
-      const productLineInput = page.locator('input[type="text"]').first();
+      // Enter product line filter - find input by label
+      const productLineLabel = page.locator('label:has-text("Product Line")');
+      await expect(productLineLabel).toBeVisible();
+      const productLineInput = productLineLabel.locator('..').locator('input').first();
       await productLineInput.fill('ELEC');
 
       await page.click('button:has-text("Get Product Lines")');
@@ -366,10 +369,11 @@ test.describe('Legacy Connectors Page', () => {
 
     test('should show loading state during product lines query', async ({ page }) => {
       await page.click('button[role="tab"]:has-text("Try It")');
+      await page.waitForTimeout(500); // Wait for tab to render
       
       // Delay response
       await page.route('**/api/legacy/global-shop/product-lines*', async (route) => {
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        await new Promise(resolve => setTimeout(resolve, 1500));
         await route.fulfill({
           status: 200,
           contentType: 'application/json',
@@ -377,10 +381,14 @@ test.describe('Legacy Connectors Page', () => {
         });
       });
 
-      await page.click('button:has-text("Get Product Lines")');
+      const getButton = page.locator('button:has-text("Get Product Lines")');
+      await getButton.click();
 
-      // Should show loading state
-      await expect(page.locator('text=Loading, .animate-spin, button:disabled').first()).toBeVisible({ timeout: 500 });
+      // Should show loading state - check for disabled button or loading text
+      // The button should be disabled or show loading text
+      await expect(
+        page.locator('button:has-text("Get Product Lines"):disabled, button:has-text("Loading"), .animate-spin').first()
+      ).toBeVisible({ timeout: 1000 });
     });
   });
 
